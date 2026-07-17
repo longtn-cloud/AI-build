@@ -21,7 +21,7 @@ const baseDoc = {
 }
 
 beforeEach(() => {
-  global.fetch = vi.fn().mockResolvedValue({ text: async () => 'plain file contents' })
+  globalThis.fetch = vi.fn().mockResolvedValue({ text: async () => 'plain file contents' })
 })
 
 describe('PreviewModal', () => {
