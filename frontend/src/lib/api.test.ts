@@ -50,7 +50,10 @@ describe('api client', () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/documents'),
-      expect.objectContaining({ method: 'POST' }),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token' },
+      }),
     )
   })
 
@@ -61,11 +64,27 @@ describe('api client', () => {
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/documents/1'),
-      expect.objectContaining({ method: 'PATCH', body: JSON.stringify({ filename: 'new-name.txt' }) }),
+      expect.objectContaining({
+        method: 'PATCH',
+        body: JSON.stringify({ filename: 'new-name.txt' }),
+        headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+      }),
     )
   })
 
   it('deleteDocument sends a DELETE request and throws on failure', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true })
+
+    await deleteDocument('1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/1'),
+      expect.objectContaining({
+        method: 'DELETE',
+        headers: { Authorization: 'Bearer test-token' },
+      }),
+    )
+
     ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
 
     await expect(deleteDocument('1')).rejects.toThrow('Failed to delete document')
