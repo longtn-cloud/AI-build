@@ -1,0 +1,12 @@
+.claude/worktrees/
+.superpowers/
+node_modules/
+__pycache__/
+*.pyc
+.env
+.env.test
+venv/
+.venv/
+dist/
+build/
+*.egg-info/
