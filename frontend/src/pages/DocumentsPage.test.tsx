@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { act, render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
 vi.mock('../lib/api', () => ({
@@ -105,5 +105,60 @@ describe('DocumentsPage', () => {
     await waitFor(() => {
       expect(openSpy).toHaveBeenCalledWith('https://signed.example/file.pdf', '_blank')
     })
+  })
+
+  it('polls while a document is processing and stops once ready', async () => {
+    vi.useFakeTimers()
+    try {
+      const processingDoc = { ...readyDoc, id: '3', status: 'processing' as const }
+      ;(listDocuments as any)
+        .mockResolvedValueOnce([processingDoc])
+        .mockResolvedValueOnce([{ ...processingDoc, status: 'ready' as const }])
+
+      const { unmount } = render(<DocumentsPage />)
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(listDocuments).toHaveBeenCalledTimes(1)
+      expect(screen.getByText('(processing)')).toBeInTheDocument()
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(3000)
+      })
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+      expect(screen.getByText('(ready)')).toBeInTheDocument()
+
+      // No further polling once nothing is pending.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000)
+      })
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+
+      unmount()
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  it('does not poll when all documents are already ready', async () => {
+    vi.useFakeTimers()
+    try {
+      ;(listDocuments as any).mockResolvedValue([readyDoc])
+
+      render(<DocumentsPage />)
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(0)
+      })
+      expect(listDocuments).toHaveBeenCalledTimes(1)
+
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10000)
+      })
+      expect(listDocuments).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

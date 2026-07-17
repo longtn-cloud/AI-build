@@ -28,6 +28,15 @@ export function DocumentsPage() {
     refresh()
   }, [])
 
+  useEffect(() => {
+    const hasPending = documents.some(
+      (d) => d.status === 'uploading' || d.status === 'processing',
+    )
+    if (!hasPending) return
+    const intervalId = setInterval(refresh, 3000)
+    return () => clearInterval(intervalId)
+  }, [documents])
+
   async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
