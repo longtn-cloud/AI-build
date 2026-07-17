@@ -8,7 +8,7 @@ from app.config import settings
 from app.db import get_conn
 from app.models import DocumentOut
 from app.services.processing import process_document
-from app.services.storage import delete_file, upload_file
+from app.services.storage import create_signed_url, delete_file, upload_file
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -100,3 +100,15 @@ async def delete_document(document_id: str, user_id: str = Depends(get_current_u
             "DELETE FROM documents WHERE id = %s AND user_id = %s", (document_id, user_id)
         )
     delete_file(row["storage_path"])
+
+
+@router.get("/{document_id}/download")
+async def get_download_url(document_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return {"url": create_signed_url(row["storage_path"])}
