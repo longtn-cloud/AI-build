@@ -75,3 +75,21 @@ export async function getPreviewText(id: string): Promise<string> {
   const data = await res.json()
   return data.text
 }
+
+export type SearchResult = {
+  document_id: string
+  filename: string
+  chunk_index: number
+  total_chunks: number
+  content: string
+  score: number
+}
+
+export async function search(query: string): Promise<SearchResult[]> {
+  const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Search failed')
+  const data = await res.json()
+  return data.results
+}

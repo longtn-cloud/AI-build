@@ -14,6 +14,7 @@ import {
   getPreviewText,
   listDocuments,
   renameDocument,
+  search,
   uploadDocument,
 } from './api'
 
@@ -112,5 +113,40 @@ describe('api client', () => {
       expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
     )
     expect(text).toBe('hello world')
+  })
+
+  it('search sends an authorized GET request and returns results', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        results: [
+          {
+            document_id: '1',
+            filename: 'a.txt',
+            chunk_index: 0,
+            total_chunks: 1,
+            content: 'hello',
+            score: 0.9,
+          },
+        ],
+      }),
+    })
+
+    const results = await search('hello world')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/search?q=hello%20world'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
+    expect(results).toEqual([
+      {
+        document_id: '1',
+        filename: 'a.txt',
+        chunk_index: 0,
+        total_chunks: 1,
+        content: 'hello',
+        score: 0.9,
+      },
+    ])
   })
 })
