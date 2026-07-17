@@ -6,17 +6,17 @@ from app.services.storage import download_file
 
 
 def process_document(document_id: str) -> None:
-    with get_conn() as conn:
-        row = conn.execute(
-            "SELECT storage_path, file_type FROM documents WHERE id = %s", (document_id,)
-        ).fetchone()
-    if row is None:
-        return
-
-    with get_conn() as conn:
-        conn.execute("UPDATE documents SET status = 'processing' WHERE id = %s", (document_id,))
-
     try:
+        with get_conn() as conn:
+            row = conn.execute(
+                "SELECT storage_path, file_type FROM documents WHERE id = %s", (document_id,)
+            ).fetchone()
+        if row is None:
+            return
+
+        with get_conn() as conn:
+            conn.execute("UPDATE documents SET status = 'processing' WHERE id = %s", (document_id,))
+
         file_bytes = download_file(row["storage_path"])
         text = extract_text(file_bytes, row["file_type"])
         pieces = chunk_text(text)

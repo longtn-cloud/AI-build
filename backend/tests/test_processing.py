@@ -73,3 +73,30 @@ def test_process_document_marks_failed_on_no_extractable_text(monkeypatch):
 
     assert doc[0] == "failed"
     assert "No extractable text" in doc[1]
+
+
+def test_process_document_marks_failed_on_early_db_error(monkeypatch):
+    _, document_id = _create_document()
+
+    real_get_conn = processing.get_conn
+    call_count = {"n": 0}
+
+    def flaky_get_conn():
+        call_count["n"] += 1
+        if call_count["n"] == 2:
+            raise RuntimeError("simulated DB error during status='processing' update")
+        return real_get_conn()
+
+    monkeypatch.setattr(processing, "get_conn", flaky_get_conn)
+
+    # Should not raise, even though the failure happens before the try/except
+    # used to start (the initial SELECT / status='processing' update).
+    processing.process_document(document_id)
+
+    with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
+        doc = conn.execute(
+            "SELECT status, error_reason FROM documents WHERE id = %s", (document_id,)
+        ).fetchone()
+
+    assert doc[0] == "failed"
+    assert doc[1] is not None
