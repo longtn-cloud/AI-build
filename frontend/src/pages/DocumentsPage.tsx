@@ -1,6 +1,13 @@
 import { ChangeEvent, useEffect, useState } from 'react'
 
-import { Document, listDocuments, uploadDocument } from '../lib/api'
+import {
+  Document,
+  deleteDocument,
+  getDownloadUrl,
+  listDocuments,
+  renameDocument,
+  uploadDocument,
+} from '../lib/api'
 import { PreviewModal } from '../components/PreviewModal'
 
 export function DocumentsPage() {
@@ -34,6 +41,36 @@ export function DocumentsPage() {
     }
   }
 
+  async function handleRename(doc: Document) {
+    const newName = window.prompt('New filename', doc.filename)
+    if (!newName) return
+    try {
+      await renameDocument(doc.id, newName)
+      await refresh()
+    } catch {
+      setError('Failed to rename document')
+    }
+  }
+
+  async function handleDelete(doc: Document) {
+    if (!window.confirm(`Delete ${doc.filename}?`)) return
+    try {
+      await deleteDocument(doc.id)
+      await refresh()
+    } catch {
+      setError('Failed to delete document')
+    }
+  }
+
+  async function handleDownload(doc: Document) {
+    try {
+      const url = await getDownloadUrl(doc.id)
+      window.open(url, '_blank')
+    } catch {
+      setError('Failed to download document')
+    }
+  }
+
   return (
     <div>
       <h1>Your Documents</h1>
@@ -46,8 +83,13 @@ export function DocumentsPage() {
             <span>{doc.filename}</span>
             <span> ({doc.status})</span>
             {doc.status === 'ready' && (
-              <button onClick={() => setPreviewing(doc)}>Preview</button>
+              <>
+                <button onClick={() => setPreviewing(doc)}>Preview</button>
+                <button onClick={() => handleDownload(doc)}>Download</button>
+              </>
             )}
+            <button onClick={() => handleRename(doc)}>Rename</button>
+            <button onClick={() => handleDelete(doc)}>Delete</button>
           </li>
         ))}
       </ul>

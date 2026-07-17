@@ -4,16 +4,31 @@ import { describe, expect, it, vi } from 'vitest'
 vi.mock('../lib/api', () => ({
   listDocuments: vi.fn(),
   uploadDocument: vi.fn(),
+  renameDocument: vi.fn(),
+  deleteDocument: vi.fn(),
+  getDownloadUrl: vi.fn(),
 }))
 
-import { listDocuments, uploadDocument } from '../lib/api'
+import {
+  deleteDocument,
+  getDownloadUrl,
+  listDocuments,
+  renameDocument,
+  uploadDocument,
+} from '../lib/api'
 import { DocumentsPage } from './DocumentsPage'
+
+const readyDoc = {
+  id: '1',
+  filename: 'report.pdf',
+  file_type: 'pdf',
+  status: 'ready' as const,
+  uploaded_at: '2026-01-01T00:00:00Z',
+}
 
 describe('DocumentsPage', () => {
   it('renders the list of documents', async () => {
-    ;(listDocuments as any).mockResolvedValue([
-      { id: '1', filename: 'report.pdf', file_type: 'pdf', status: 'ready', uploaded_at: '2026-01-01T00:00:00Z' },
-    ])
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
 
     render(<DocumentsPage />)
 
@@ -43,5 +58,52 @@ describe('DocumentsPage', () => {
       expect(uploadDocument).toHaveBeenCalledWith(file)
     })
     expect(listDocuments).toHaveBeenCalledTimes(2)
+  })
+
+  it('renames a document', async () => {
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
+    ;(renameDocument as any).mockResolvedValue({ ...readyDoc, filename: 'renamed.pdf' })
+    vi.stubGlobal('prompt', vi.fn().mockReturnValue('renamed.pdf'))
+
+    render(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+
+    await waitFor(() => {
+      expect(renameDocument).toHaveBeenCalledWith('1', 'renamed.pdf')
+    })
+    expect(listDocuments).toHaveBeenCalledTimes(2)
+  })
+
+  it('deletes a document after confirmation', async () => {
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
+    ;(deleteDocument as any).mockResolvedValue(undefined)
+    vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
+
+    render(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+
+    await waitFor(() => {
+      expect(deleteDocument).toHaveBeenCalledWith('1')
+    })
+    expect(listDocuments).toHaveBeenCalledTimes(2)
+  })
+
+  it('opens the download URL when Download is clicked', async () => {
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
+    ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/file.pdf')
+    const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
+
+    render(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+
+    await waitFor(() => {
+      expect(openSpy).toHaveBeenCalledWith('https://signed.example/file.pdf', '_blank')
+    })
   })
 })
