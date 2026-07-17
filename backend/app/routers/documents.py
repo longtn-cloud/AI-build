@@ -112,3 +112,22 @@ async def get_download_url(document_id: str, user_id: str = Depends(get_current_
     if row is None:
         raise HTTPException(status_code=404, detail="Document not found")
     return {"url": create_signed_url(row["storage_path"])}
+
+
+@router.get("/{document_id}/preview")
+async def get_preview(document_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT file_type, status, extracted_text FROM documents WHERE id = %s AND user_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    if row["file_type"] != "docx":
+        raise HTTPException(
+            status_code=400,
+            detail="Preview endpoint only applies to docx files; use the download URL for other types",
+        )
+    if row["status"] != "ready":
+        raise HTTPException(status_code=409, detail="Document is not ready yet")
+    return {"text": row["extracted_text"]}
