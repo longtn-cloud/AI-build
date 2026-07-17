@@ -6,13 +6,10 @@ from app.auth import get_current_user_id
 from app.config import settings
 from app.db import get_conn
 from app.models import DocumentOut
+from app.services.processing import process_document
 from app.services.storage import upload_file
 
 router = APIRouter(prefix="/documents", tags=["documents"])
-
-
-def process_document(document_id: str) -> None:  # placeholder, replaced in Task 10
-    pass
 
 
 @router.post("", response_model=DocumentOut, status_code=201)
