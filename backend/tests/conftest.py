@@ -15,8 +15,16 @@ TEST_DB_URL = os.environ["SUPABASE_DB_URL"]
 BACKEND_ROOT = pathlib.Path(__file__).parent.parent
 
 
+def _assert_is_test_db(url: str) -> None:
+    if "localhost:5433" not in url or "/test" not in url:
+        raise RuntimeError(
+            f"refusing to run destructive test fixture against non-test database: {url}"
+        )
+
+
 @pytest.fixture(scope="session", autouse=True)
 def apply_migrations():
+    _assert_is_test_db(TEST_DB_URL)
     stub_sql = (BACKEND_ROOT / "tests" / "fixtures" / "0000_test_auth_stub.sql").read_text()
     init_sql = (BACKEND_ROOT / "migrations" / "0001_init.sql").read_text()
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
