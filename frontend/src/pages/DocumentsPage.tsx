@@ -1,10 +1,12 @@
 import { ChangeEvent, useEffect, useState } from 'react'
 
 import { Document, listDocuments, uploadDocument } from '../lib/api'
+import { PreviewModal } from '../components/PreviewModal'
 
 export function DocumentsPage() {
   const [documents, setDocuments] = useState<Document[]>([])
   const [error, setError] = useState<string | null>(null)
+  const [previewing, setPreviewing] = useState<Document | null>(null)
 
   async function refresh() {
     try {
@@ -43,9 +45,13 @@ export function DocumentsPage() {
           <li key={doc.id}>
             <span>{doc.filename}</span>
             <span> ({doc.status})</span>
+            {doc.status === 'ready' && (
+              <button onClick={() => setPreviewing(doc)}>Preview</button>
+            )}
           </li>
         ))}
       </ul>
+      {previewing && <PreviewModal document={previewing} onClose={() => setPreviewing(null)} />}
     </div>
   )
 }
