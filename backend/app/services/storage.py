@@ -2,11 +2,7 @@ from supabase import Client, create_client
 
 from app.config import settings
 
-try:
-    _client: Client = create_client(settings.supabase_url, settings.supabase_service_role_key)
-except Exception:
-    # In test environment, this will be replaced by monkeypatch
-    _client = None  # type: ignore
+_client: Client = create_client(settings.supabase_url, settings.supabase_service_role_key)
 
 
 def upload_file(storage_path: str, file_bytes: bytes, content_type: str) -> None:
