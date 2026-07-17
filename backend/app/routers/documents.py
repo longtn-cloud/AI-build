@@ -43,3 +43,19 @@ async def upload_document(
 
     background_tasks.add_task(process_document, document_id)
     return row
+
+
+@router.get("", response_model=list[DocumentOut])
+async def list_documents(user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT id, user_id, filename, file_type, storage_path, status,
+                   error_reason, extracted_text, uploaded_at
+            FROM documents
+            WHERE user_id = %s
+            ORDER BY uploaded_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    return rows
