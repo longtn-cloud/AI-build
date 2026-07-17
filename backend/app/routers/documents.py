@@ -1,13 +1,14 @@
 import uuid
 
 from fastapi import APIRouter, BackgroundTasks, Depends, File, HTTPException, UploadFile
+from pydantic import BaseModel
 
 from app.auth import get_current_user_id
 from app.config import settings
 from app.db import get_conn
 from app.models import DocumentOut
 from app.services.processing import process_document
-from app.services.storage import upload_file
+from app.services.storage import delete_file, upload_file
 
 router = APIRouter(prefix="/documents", tags=["documents"])
 
@@ -59,3 +60,43 @@ async def list_documents(user_id: str = Depends(get_current_user_id)):
             (user_id,),
         ).fetchall()
     return rows
+
+
+class RenameRequest(BaseModel):
+    filename: str
+
+
+@router.patch("/{document_id}", response_model=DocumentOut)
+async def rename_document(
+    document_id: str,
+    body: RenameRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    with get_conn() as conn:
+        row = conn.execute(
+            """
+            UPDATE documents SET filename = %s
+            WHERE id = %s AND user_id = %s
+            RETURNING id, user_id, filename, file_type, storage_path, status,
+                      error_reason, extracted_text, uploaded_at
+            """,
+            (body.filename, document_id, user_id),
+        ).fetchone()
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+    return row
+
+
+@router.delete("/{document_id}", status_code=204)
+async def delete_document(document_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        row = conn.execute(
+            "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+        if row is None:
+            raise HTTPException(status_code=404, detail="Document not found")
+        conn.execute(
+            "DELETE FROM documents WHERE id = %s AND user_id = %s", (document_id, user_id)
+        )
+    delete_file(row["storage_path"])
