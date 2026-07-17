@@ -2,7 +2,15 @@ import { useEffect, useState } from 'react'
 
 import { Document, getDownloadUrl, getPreviewText } from '../lib/api'
 
-export function PreviewModal({ document, onClose }: { document: Document; onClose: () => void }) {
+type PreviewableDocument = Pick<Document, 'id' | 'file_type'>
+
+export function PreviewModal({
+  document,
+  onClose,
+}: {
+  document: PreviewableDocument
+  onClose: () => void
+}) {
   const [content, setContent] = useState<{ kind: 'pdf' | 'text'; value: string } | null>(null)
 
   useEffect(() => {

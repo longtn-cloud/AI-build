@@ -1,7 +1,7 @@
 import { ChangeEvent, useEffect, useState } from 'react'
 
 import {
-  Document,
+  DocumentListItem,
   deleteDocument,
   getDownloadUrl,
   listDocuments,
@@ -11,9 +11,9 @@ import {
 import { PreviewModal } from '../components/PreviewModal'
 
 export function DocumentsPage() {
-  const [documents, setDocuments] = useState<Document[]>([])
+  const [documents, setDocuments] = useState<DocumentListItem[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [previewing, setPreviewing] = useState<Document | null>(null)
+  const [previewing, setPreviewing] = useState<DocumentListItem | null>(null)
 
   async function refresh() {
     try {
@@ -41,7 +41,7 @@ export function DocumentsPage() {
     }
   }
 
-  async function handleRename(doc: Document) {
+  async function handleRename(doc: DocumentListItem) {
     const newName = window.prompt('New filename', doc.filename)
     if (!newName) return
     try {
@@ -52,7 +52,7 @@ export function DocumentsPage() {
     }
   }
 
-  async function handleDelete(doc: Document) {
+  async function handleDelete(doc: DocumentListItem) {
     if (!window.confirm(`Delete ${doc.filename}?`)) return
     try {
       await deleteDocument(doc.id)
@@ -62,7 +62,7 @@ export function DocumentsPage() {
     }
   }
 
-  async function handleDownload(doc: Document) {
+  async function handleDownload(doc: DocumentListItem) {
     try {
       const url = await getDownloadUrl(doc.id)
       window.open(url, '_blank')

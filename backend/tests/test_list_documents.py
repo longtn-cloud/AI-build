@@ -39,3 +39,16 @@ def test_list_documents_returns_only_own_documents():
     assert len(response_a.json()) == 2
     assert response_b.status_code == 200
     assert len(response_b.json()) == 1
+
+
+def test_list_documents_omits_extracted_text_and_storage_path():
+    _, headers = _create_user_with_documents(1)
+
+    response = client.get("/documents", headers=headers)
+
+    assert response.status_code == 200
+    doc = response.json()[0]
+    assert "extracted_text" not in doc
+    assert "storage_path" not in doc
+    assert "filename" in doc
+    assert "status" in doc

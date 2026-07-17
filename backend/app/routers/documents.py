@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from app.auth import get_current_user_id
 from app.config import settings
 from app.db import get_conn
-from app.models import DocumentOut
+from app.models import DocumentListItemOut, DocumentOut
 from app.services.processing import process_document
 from app.services.storage import create_signed_url, delete_file, upload_file
 
@@ -46,13 +46,13 @@ async def upload_document(
     return row
 
 
-@router.get("", response_model=list[DocumentOut])
+@router.get("", response_model=list[DocumentListItemOut])
 async def list_documents(user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         rows = conn.execute(
             """
-            SELECT id, user_id, filename, file_type, storage_path, status,
-                   error_reason, extracted_text, uploaded_at
+            SELECT id, user_id, filename, file_type, status,
+                   error_reason, uploaded_at
             FROM documents
             WHERE user_id = %s
             ORDER BY uploaded_at DESC

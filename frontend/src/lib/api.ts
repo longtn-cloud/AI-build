@@ -22,7 +22,11 @@ export type Document = {
   uploaded_at: string
 }
 
-export async function listDocuments(): Promise<Document[]> {
+// The list endpoint omits extracted_text and storage_path (not used by the list UI) to
+// avoid shipping every document's full extracted text on every list call.
+export type DocumentListItem = Omit<Document, 'extracted_text' | 'storage_path'>
+
+export async function listDocuments(): Promise<DocumentListItem[]> {
   const res = await fetch(`${API_BASE}/documents`, { headers: await authHeader() })
   if (!res.ok) throw new Error('Failed to list documents')
   return res.json()

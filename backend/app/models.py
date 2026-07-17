@@ -21,3 +21,20 @@ class DocumentOut(BaseModel):
         if isinstance(value, UUID):
             return str(value)
         return value
+
+
+class DocumentListItemOut(BaseModel):
+    id: str
+    user_id: str
+    filename: str
+    file_type: str
+    status: str
+    error_reason: str | None = None
+    uploaded_at: datetime
+
+    @field_validator("id", "user_id", mode="before")
+    @classmethod
+    def _stringify_uuid(cls, value):
+        if isinstance(value, UUID):
+            return str(value)
+        return value
