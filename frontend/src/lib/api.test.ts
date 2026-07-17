@@ -8,7 +8,14 @@ vi.mock('./supabaseClient', () => ({
   },
 }))
 
-import { deleteDocument, getDownloadUrl, listDocuments, renameDocument, uploadDocument } from './api'
+import {
+  deleteDocument,
+  getDownloadUrl,
+  getPreviewText,
+  listDocuments,
+  renameDocument,
+  uploadDocument,
+} from './api'
 
 const originalFetch = globalThis.fetch
 
@@ -69,6 +76,22 @@ describe('api client', () => {
 
     const url = await getDownloadUrl('1')
 
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/1/download'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
     expect(url).toBe('https://x')
+  })
+
+  it('getPreviewText sends an authorized GET request and returns the preview text', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ text: 'hello world' }) })
+
+    const text = await getPreviewText('1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/1/preview'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
+    expect(text).toBe('hello world')
   })
 })
