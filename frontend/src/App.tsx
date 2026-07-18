@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ChatPage } from './pages/ChatPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LoginPage } from './pages/LoginPage'
+import { QuizHistoryPage } from './pages/QuizHistoryPage'
 import { QuizPage } from './pages/QuizPage'
 import { SearchPage } from './pages/SearchPage'
 import { SignupPage } from './pages/SignupPage'
@@ -40,6 +41,15 @@ export function App() {
             <ProtectedRoute>
               <AppNav />
               <QuizPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz/history"
+          element={
+            <ProtectedRoute>
+              <AppNav />
+              <QuizHistoryPage />
             </ProtectedRoute>
           }
         />
