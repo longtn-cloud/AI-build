@@ -9,7 +9,7 @@ Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/p
 - **Frontend:** React 18 + Vite + TypeScript, Tailwind CSS, React Router, Vitest + Testing Library
 - **Backend:** FastAPI + psycopg3, pytest
 - **Database / Auth / Storage:** Supabase (Postgres + `pgvector`, Auth, object storage)
-- **Embeddings:** local, in-process (`sentence-transformers`, `all-MiniLM-L6-v2`, 384-dim vectors) — no API key required
+- **Embeddings:** Gemini API (`gemini-embedding-001`, 384-dim vectors)
 - **LLM:** Gemini API (`gemini-2.5-flash`) — chat Q&A and quiz generation
 
 Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Gemini API.
@@ -137,7 +137,7 @@ Free-tier caveat: the service spins down after 15 minutes of inactivity, so the 
 backend/
   app/
     routers/       # documents, search, chat, quiz — one file per feature
-    services/       # embeddings.py (local sentence-transformers), llm.py (Gemini), extraction/chunking/processing/storage
+    services/       # embeddings.py (Gemini), llm.py (Gemini), extraction/chunking/processing/storage
     auth.py         # Supabase JWT verification -> get_current_user_id dependency
     db.py           # get_conn() -> psycopg connection
     config.py       # Settings (env vars)
