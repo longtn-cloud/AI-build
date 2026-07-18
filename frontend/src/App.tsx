@@ -1,6 +1,6 @@
 import { Navigate, Route, Routes } from 'react-router-dom'
 
-import { AppNav } from './components/AppNav'
+import { AppShell } from './components/AppShell'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext'
 import { ChatPage } from './pages/ChatPage'
@@ -21,8 +21,9 @@ export function App() {
           path="/documents"
           element={
             <ProtectedRoute>
-              <AppNav />
-              <DocumentsPage />
+              <AppShell>
+                <DocumentsPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -30,8 +31,9 @@ export function App() {
           path="/search"
           element={
             <ProtectedRoute>
-              <AppNav />
-              <SearchPage />
+              <AppShell>
+                <SearchPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -39,8 +41,9 @@ export function App() {
           path="/quiz"
           element={
             <ProtectedRoute>
-              <AppNav />
-              <QuizPage />
+              <AppShell>
+                <QuizPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -48,8 +51,9 @@ export function App() {
           path="/quiz/history"
           element={
             <ProtectedRoute>
-              <AppNav />
-              <QuizHistoryPage />
+              <AppShell>
+                <QuizHistoryPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />
@@ -57,7 +61,9 @@ export function App() {
           path="/chat"
           element={
             <ProtectedRoute>
-              <ChatPage />
+              <AppShell>
+                <ChatPage />
+              </AppShell>
             </ProtectedRoute>
           }
         />
