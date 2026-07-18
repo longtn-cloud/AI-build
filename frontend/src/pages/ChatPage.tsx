@@ -4,8 +4,6 @@ import { useMutation, useQuery } from '@tanstack/react-query'
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
-import { Card } from '../components/ui/Card'
-import { CitationStub } from '../components/ui/CitationStub'
 import { Input } from '../components/ui/Input'
 import { ChatMessage, createChatSession, sendChatMessage } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
@@ -38,66 +36,86 @@ export function ChatPage() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <h1 className="font-display text-2xl font-semibold text-parchment">Chat</h1>
-      {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
-      <ul className="space-y-3">
-        {messages.map((message) => (
-          <li key={message.id}>
-            <Card
-              className={
-                message.role === 'user'
-                  ? 'ml-auto max-w-lg bg-[#F4E8D0] dark:bg-[#2A2318]'
-                  : 'max-w-lg'
-              }
-            >
-              <p className="font-body text-ink dark:text-parchment">{message.content}</p>
-              {message.used_web_search && (
-                <div className="mt-2">
-                  <Badge variant="amber">Web</Badge>
+    <div className="flex h-full flex-col">
+      <div className="flex-1 overflow-y-auto py-7">
+        <div className="mx-auto flex max-w-[760px] flex-col gap-6 px-8">
+          {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
+          {messages.map((message) =>
+            message.role === 'user' ? (
+              <div
+                key={message.id}
+                className="ml-auto max-w-[78%] rounded-[16px_16px_4px_16px] bg-sidebar px-4 py-3 text-[14.5px] leading-relaxed text-white animate-fade-up"
+              >
+                {message.content}
+              </div>
+            ) : (
+              <div key={message.id} className="flex gap-3 animate-fade-up">
+                <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-[10px] border border-accent/20 bg-ok-bg">
+                  <span className="h-1 w-1 rounded-full bg-accent" />
                 </div>
-              )}
-              {message.citations.length > 0 && (
-                <ul className="mt-2 flex flex-wrap gap-2">
-                  {message.citations.map((citation) => (
-                    <li key={`${citation.document_id}-${citation.chunk_index}`}>
-                      <CitationStub>
-                        {citation.filename} — passage {citation.chunk_index + 1} of{' '}
-                        {citation.total_chunks}
-                      </CitationStub>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </Card>
-          </li>
-        ))}
-      </ul>
-      <form onSubmit={handleSubmit} className="space-y-3">
-        <div>
-          <label
-            htmlFor="chat-input"
-            className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
-          >
-            Ask a question
-          </label>
-          <Input id="chat-input" value={input} onChange={(e) => setInput(e.target.value)} />
+                <div className="min-w-0 flex-1">
+                  <p className="mb-3.5 text-[15px] leading-relaxed text-sidebar">
+                    {message.content}
+                  </p>
+                  {message.used_web_search && (
+                    <div className="mb-3 inline-flex">
+                      <Badge variant="blue">Web</Badge>
+                    </div>
+                  )}
+                  {message.citations.length > 0 && (
+                    <div className="flex flex-col gap-2">
+                      {message.citations.map((citation) => (
+                        <div
+                          key={`${citation.document_id}-${citation.chunk_index}`}
+                          className="rounded-lg border border-line border-l-[3px] border-l-accent bg-[#FBFDFB] px-3.5 py-3"
+                        >
+                          <span className="text-xs font-bold text-sidebar">
+                            {citation.filename} — passage {citation.chunk_index + 1} of{' '}
+                            {citation.total_chunks}
+                          </span>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ),
+          )}
         </div>
-        <div className="flex items-center justify-between">
-          <label className="flex items-center gap-2 font-body text-sm text-parchment/70">
-            <input
-              type="checkbox"
-              checked={webSearch}
-              onChange={(e) => setWebSearch(e.target.checked)}
-              className="h-4 w-4 rounded border-rule text-brass focus:ring-brass"
+      </div>
+
+      <div className="flex-shrink-0 border-t border-line bg-white px-8 py-5">
+        <form onSubmit={handleSubmit} className="mx-auto max-w-[760px] space-y-3">
+          <div>
+            <label
+              htmlFor="chat-input"
+              className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted"
+            >
+              Ask a question
+            </label>
+            <Input
+              id="chat-input"
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              placeholder="Ask a question grounded in your documents…"
             />
-            Search the web for this message
-          </label>
-          <Button type="submit" disabled={sendMutation.isPending}>
-            Send
-          </Button>
-        </div>
-      </form>
+          </div>
+          <div className="flex items-center justify-between">
+            <label className="flex items-center gap-2 text-sm text-muted">
+              <input
+                type="checkbox"
+                checked={webSearch}
+                onChange={(e) => setWebSearch(e.target.checked)}
+                className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
+              />
+              Search the web for this message
+            </label>
+            <Button type="submit" disabled={sendMutation.isPending}>
+              Send
+            </Button>
+          </div>
+        </form>
+      </div>
     </div>
   )
 }
