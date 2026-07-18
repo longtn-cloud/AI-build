@@ -154,7 +154,7 @@ describe('DocumentsPage', () => {
         await vi.advanceTimersByTimeAsync(0)
       })
       expect(listDocuments).toHaveBeenCalledTimes(1)
-      expect(screen.getByText('(processing)')).toBeInTheDocument()
+      expect(screen.getByText('Processing…')).toBeInTheDocument()
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3000)
@@ -166,7 +166,7 @@ describe('DocumentsPage', () => {
         await vi.advanceTimersByTimeAsync(10)
       })
       expect(listDocuments).toHaveBeenCalledTimes(2)
-      expect(screen.getByText('(ready)')).toBeInTheDocument()
+      expect(screen.getByText('Indexed')).toBeInTheDocument()
 
       // No further polling once nothing is pending.
       await act(async () => {
