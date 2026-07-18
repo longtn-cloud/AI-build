@@ -5,6 +5,7 @@ export function AppNav() {
     <nav>
       <Link to="/documents">Documents</Link>
       <Link to="/search">Search</Link>
+      <Link to="/quiz">Quiz</Link>
     </nav>
   )
 }

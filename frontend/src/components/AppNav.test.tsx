@@ -14,5 +14,6 @@ describe('AppNav', () => {
 
     expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute('href', '/documents')
     expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', '/search')
+    expect(screen.getByRole('link', { name: 'Quiz' })).toHaveAttribute('href', '/quiz')
   })
 })

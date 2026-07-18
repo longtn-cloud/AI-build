@@ -6,6 +6,7 @@ import { AuthProvider } from './contexts/AuthContext'
 import { ChatPage } from './pages/ChatPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LoginPage } from './pages/LoginPage'
+import { QuizPage } from './pages/QuizPage'
 import { SearchPage } from './pages/SearchPage'
 import { SignupPage } from './pages/SignupPage'
 
@@ -30,6 +31,15 @@ export function App() {
             <ProtectedRoute>
               <AppNav />
               <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/quiz"
+          element={
+            <ProtectedRoute>
+              <AppNav />
+              <QuizPage />
             </ProtectedRoute>
           }
         />
