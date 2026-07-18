@@ -6,7 +6,7 @@ Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/p
 
 ## Architecture
 
-- **Frontend:** React 18 + Vite + TypeScript, React Router, Vitest + Testing Library
+- **Frontend:** React 18 + Vite + TypeScript, Tailwind CSS, React Router, Vitest + Testing Library
 - **Backend:** FastAPI + psycopg3, pytest
 - **Database / Auth / Storage:** Supabase (Postgres + `pgvector`, Auth, object storage)
 - **Embeddings:** Voyage AI (`voyage-3-lite`, 512-dim vectors)
@@ -120,9 +120,10 @@ backend/
 frontend/
   src/
     pages/           # one page per feature (Documents, Search, Chat, Quiz, QuizHistory, Login, Signup)
-    components/       # AppNav, ProtectedRoute
+    components/       # AppNav, AppShell, ProtectedRoute
+    components/ui/     # Button, Input, Card, and other shared UI primitives
     lib/api.ts         # typed fetch client for the backend
-    contexts/           # AuthContext
+    contexts/           # AuthContext, ThemeContext
 docs/superpowers/
   specs/             # one design doc per feature, extending the whole-app design
   plans/             # one TDD implementation plan per feature
