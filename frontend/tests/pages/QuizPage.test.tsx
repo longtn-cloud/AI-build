@@ -84,7 +84,7 @@ describe('QuizPage', () => {
     })
 
     renderQuizPage()
-    await waitFor(() => expect(listDocuments).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByLabelText('policy.pdf')).toBeInTheDocument())
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByRole('button', { name: 'Generate Quiz' }))
@@ -112,7 +112,7 @@ describe('QuizPage', () => {
     ;(generateQuiz as any).mockResolvedValue({ ...QUIZ, requested_count: 10, actual_count: 2 })
 
     renderQuizPage()
-    await waitFor(() => expect(listDocuments).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByLabelText('policy.pdf')).toBeInTheDocument())
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByRole('button', { name: 'Generate Quiz' }))
@@ -131,7 +131,7 @@ describe('QuizPage', () => {
     ;(generateQuiz as any).mockRejectedValue(new Error('Failed to generate quiz'))
 
     renderQuizPage()
-    await waitFor(() => expect(listDocuments).toHaveBeenCalled())
+    await waitFor(() => expect(screen.getByLabelText('policy.pdf')).toBeInTheDocument())
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByRole('button', { name: 'Generate Quiz' }))
