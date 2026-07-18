@@ -62,3 +62,67 @@ def test_answer_with_web_search_calls_claude_with_web_search_tool(monkeypatch):
     assert kwargs["model"] == "claude-sonnet-5"
     assert kwargs["tools"] == [{"type": "web_search_20260209", "name": "web_search"}]
     assert kwargs["messages"] == [{"role": "user", "content": "What's the weather?"}]
+
+
+def test_generate_quiz_questions_calls_claude_with_forced_tool_and_context(monkeypatch):
+    fake_client = MagicMock()
+    tool_use_block = MagicMock()
+    tool_use_block.type = "tool_use"
+    tool_use_block.name = "return_quiz_questions"
+    tool_use_block.input = {
+        "questions": [
+            {
+                "question": "What is the refund window?",
+                "options": ["7 days", "30 days", "60 days", "90 days"],
+                "correct_answer": 1,
+                "source_document_id": "doc-1",
+                "source_chunk_index": 1,
+            }
+        ]
+    }
+    fake_client.messages.create.return_value = MagicMock(content=[tool_use_block])
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    chunks = [
+        {
+            "document_id": "doc-1",
+            "filename": "policy.pdf",
+            "chunk_index": 1,
+            "total_chunks": 3,
+            "content": "Refunds must be requested within 30 days of purchase.",
+        }
+    ]
+
+    result = llm.generate_quiz_questions(chunks, 10)
+
+    assert result == [
+        {
+            "question": "What is the refund window?",
+            "options": ["7 days", "30 days", "60 days", "90 days"],
+            "correct_answer": 1,
+            "source_document_id": "doc-1",
+            "source_chunk_index": 1,
+        }
+    ]
+    _, kwargs = fake_client.messages.create.call_args
+    assert kwargs["model"] == "claude-sonnet-5"
+    assert kwargs["thinking"] == {"type": "disabled"}
+    assert kwargs["tools"] == [llm.QUIZ_TOOL]
+    assert kwargs["tool_choice"] == {"type": "tool", "name": "return_quiz_questions"}
+    assert "policy.pdf" in kwargs["messages"][0]["content"]
+    assert "passage 2 of 3" in kwargs["messages"][0]["content"]
+    assert "doc-1" in kwargs["messages"][0]["content"]
+    assert "10" in kwargs["system"]
+
+
+def test_generate_quiz_questions_returns_empty_list_when_no_tool_use_block(monkeypatch):
+    fake_client = MagicMock()
+    text_block = MagicMock()
+    text_block.type = "text"
+    text_block.text = "I couldn't generate any questions."
+    fake_client.messages.create.return_value = MagicMock(content=[text_block])
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    result = llm.generate_quiz_questions([{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c"}], 5)
+
+    assert result == []

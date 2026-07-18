@@ -31,11 +31,16 @@ def apply_migrations():
     stub_sql = (BACKEND_ROOT / "tests" / "fixtures" / "0000_test_auth_stub.sql").read_text()
     init_sql = (BACKEND_ROOT / "migrations" / "0001_init.sql").read_text()
     chat_sql = (BACKEND_ROOT / "migrations" / "0002_chat.sql").read_text()
+    quiz_sql = (BACKEND_ROOT / "migrations" / "0003_quiz.sql").read_text()
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
-        conn.execute("DROP TABLE IF EXISTS chat_messages, chat_sessions, chunks, documents CASCADE")
+        conn.execute(
+            "DROP TABLE IF EXISTS quiz_attempts, quiz_questions, quizzes, "
+            "chat_messages, chat_sessions, chunks, documents CASCADE"
+        )
         conn.execute(stub_sql)
         conn.execute(init_sql)
         conn.execute(chat_sql)
+        conn.execute(quiz_sql)
     yield
 
 
@@ -43,4 +48,7 @@ def apply_migrations():
 def clean_tables():
     yield
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
-        conn.execute("TRUNCATE chat_messages, chat_sessions, chunks, documents CASCADE")
+        conn.execute(
+            "TRUNCATE quiz_attempts, quiz_questions, quizzes, "
+            "chat_messages, chat_sessions, chunks, documents CASCADE"
+        )
