@@ -1,5 +1,7 @@
-import { act, render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { act, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+import { renderWithQueryClient } from '../test-utils'
 
 vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
@@ -30,7 +32,7 @@ describe('DocumentsPage', () => {
   it('renders the list of documents', async () => {
     ;(listDocuments as any).mockResolvedValue([readyDoc])
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
 
     await waitFor(() => {
       expect(screen.getByText('report.pdf')).toBeInTheDocument()
@@ -47,7 +49,7 @@ describe('DocumentsPage', () => {
       uploaded_at: '2026-01-01T00:00:00Z',
     })
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => expect(listDocuments).toHaveBeenCalledTimes(1))
 
     const file = new File(['hello'], 'notes.txt', { type: 'text/plain' })
@@ -57,7 +59,9 @@ describe('DocumentsPage', () => {
     await waitFor(() => {
       expect(uploadDocument).toHaveBeenCalledWith(file)
     })
-    expect(listDocuments).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+    })
   })
 
   it('uploads a dropped file and refreshes the list', async () => {
@@ -70,7 +74,7 @@ describe('DocumentsPage', () => {
       uploaded_at: '2026-01-01T00:00:00Z',
     })
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => expect(listDocuments).toHaveBeenCalledTimes(1))
 
     const file = new File(['hello'], 'dropped.pdf', { type: 'application/pdf' })
@@ -80,7 +84,9 @@ describe('DocumentsPage', () => {
     await waitFor(() => {
       expect(uploadDocument).toHaveBeenCalledWith(file)
     })
-    expect(listDocuments).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+    })
   })
 
   it('renames a document', async () => {
@@ -88,7 +94,7 @@ describe('DocumentsPage', () => {
     ;(renameDocument as any).mockResolvedValue({ ...readyDoc, filename: 'renamed.pdf' })
     vi.stubGlobal('prompt', vi.fn().mockReturnValue('renamed.pdf'))
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
@@ -96,7 +102,9 @@ describe('DocumentsPage', () => {
     await waitFor(() => {
       expect(renameDocument).toHaveBeenCalledWith('1', 'renamed.pdf')
     })
-    expect(listDocuments).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+    })
   })
 
   it('deletes a document after confirmation', async () => {
@@ -104,7 +112,7 @@ describe('DocumentsPage', () => {
     ;(deleteDocument as any).mockResolvedValue(undefined)
     vi.stubGlobal('confirm', vi.fn().mockReturnValue(true))
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
@@ -112,7 +120,9 @@ describe('DocumentsPage', () => {
     await waitFor(() => {
       expect(deleteDocument).toHaveBeenCalledWith('1')
     })
-    expect(listDocuments).toHaveBeenCalledTimes(2)
+    await waitFor(() => {
+      expect(listDocuments).toHaveBeenCalledTimes(2)
+    })
   })
 
   it('opens the download URL when Download is clicked', async () => {
@@ -120,7 +130,7 @@ describe('DocumentsPage', () => {
     ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/file.pdf')
     const openSpy = vi.spyOn(window, 'open').mockImplementation(() => null)
 
-    render(<DocumentsPage />)
+    renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
     fireEvent.click(screen.getByRole('button', { name: 'Download' }))
@@ -138,7 +148,7 @@ describe('DocumentsPage', () => {
         .mockResolvedValueOnce([processingDoc])
         .mockResolvedValueOnce([{ ...processingDoc, status: 'ready' as const }])
 
-      const { unmount } = render(<DocumentsPage />)
+      const { unmount } = renderWithQueryClient(<DocumentsPage />)
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)
@@ -148,6 +158,12 @@ describe('DocumentsPage', () => {
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3000)
+      })
+      // React Query's internal notify step lands on a macrotask just past
+      // the exact interval mark under fake timers; a small extra advance
+      // lets that settle before asserting on the rendered result.
+      await act(async () => {
+        await vi.advanceTimersByTimeAsync(10)
       })
       expect(listDocuments).toHaveBeenCalledTimes(2)
       expect(screen.getByText('(ready)')).toBeInTheDocument()
@@ -169,7 +185,7 @@ describe('DocumentsPage', () => {
     try {
       ;(listDocuments as any).mockResolvedValue([readyDoc])
 
-      render(<DocumentsPage />)
+      renderWithQueryClient(<DocumentsPage />)
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(0)

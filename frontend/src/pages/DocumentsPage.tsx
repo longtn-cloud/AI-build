@@ -1,4 +1,5 @@
-import { ChangeEvent, DragEvent, useEffect, useState } from 'react'
+import { ChangeEvent, DragEvent, useState } from 'react'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -13,6 +14,7 @@ import {
   uploadDocument,
 } from '../lib/api'
 import { PreviewModal } from '../components/PreviewModal'
+import { queryKeys } from '../lib/queryKeys'
 
 const STATUS_VARIANT = {
   uploading: 'gray',
@@ -22,46 +24,44 @@ const STATUS_VARIANT = {
 } as const
 
 export function DocumentsPage() {
-  const [documents, setDocuments] = useState<DocumentListItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<DocumentListItem | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
+  const queryClient = useQueryClient()
 
-  async function refresh() {
-    try {
-      const docs = await listDocuments()
-      setDocuments(docs)
-    } catch {
-      setError('Failed to load documents')
-    }
-  }
+  const documentsQuery = useQuery({
+    queryKey: queryKeys.documents,
+    queryFn: listDocuments,
+    refetchInterval: (query) =>
+      query.state.data?.some((d) => d.status === 'uploading' || d.status === 'processing')
+        ? 3000
+        : false,
+  })
+  const documents = documentsQuery.data ?? []
 
-  useEffect(() => {
-    refresh()
-  }, [])
+  const uploadMutation = useMutation({
+    mutationFn: (file: File) => uploadDocument(file),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
+    onError: () => setError('Failed to upload document'),
+  })
 
-  useEffect(() => {
-    const hasPending = documents.some(
-      (d) => d.status === 'uploading' || d.status === 'processing',
-    )
-    if (!hasPending) return
-    const intervalId = setInterval(refresh, 3000)
-    return () => clearInterval(intervalId)
-  }, [documents])
+  const renameMutation = useMutation({
+    mutationFn: ({ id, filename }: { id: string; filename: string }) =>
+      renameDocument(id, filename),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
+    onError: () => setError('Failed to rename document'),
+  })
 
-  async function uploadFile(file: File) {
-    try {
-      await uploadDocument(file)
-      await refresh()
-    } catch {
-      setError('Failed to upload document')
-    }
-  }
+  const deleteMutation = useMutation({
+    mutationFn: (id: string) => deleteDocument(id),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
+    onError: () => setError('Failed to delete document'),
+  })
 
-  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+  function handleUpload(event: ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0]
     if (!file) return
-    await uploadFile(file)
+    uploadMutation.mutate(file)
     event.target.value = ''
   }
 
@@ -74,33 +74,23 @@ export function DocumentsPage() {
     setIsDraggingOver(false)
   }
 
-  async function handleDrop(event: DragEvent<HTMLDivElement>) {
+  function handleDrop(event: DragEvent<HTMLDivElement>) {
     event.preventDefault()
     setIsDraggingOver(false)
     const file = event.dataTransfer.files?.[0]
     if (!file) return
-    await uploadFile(file)
+    uploadMutation.mutate(file)
   }
 
-  async function handleRename(doc: DocumentListItem) {
+  function handleRename(doc: DocumentListItem) {
     const newName = window.prompt('New filename', doc.filename)
     if (!newName) return
-    try {
-      await renameDocument(doc.id, newName)
-      await refresh()
-    } catch {
-      setError('Failed to rename document')
-    }
+    renameMutation.mutate({ id: doc.id, filename: newName })
   }
 
-  async function handleDelete(doc: DocumentListItem) {
+  function handleDelete(doc: DocumentListItem) {
     if (!window.confirm(`Delete ${doc.filename}?`)) return
-    try {
-      await deleteDocument(doc.id)
-      await refresh()
-    } catch {
-      setError('Failed to delete document')
-    }
+    deleteMutation.mutate(doc.id)
   }
 
   async function handleDownload(doc: DocumentListItem) {
@@ -112,10 +102,12 @@ export function DocumentsPage() {
     }
   }
 
+  const displayError = documentsQuery.isError ? 'Failed to load documents' : error
+
   return (
     <div className="space-y-8">
       <h1 className="font-display text-2xl font-semibold text-parchment">Your Documents</h1>
-      {error && <Alert>{error}</Alert>}
+      {displayError && <Alert>{displayError}</Alert>}
       <div
         onDragOver={handleDragOver}
         onDragLeave={handleDragLeave}
