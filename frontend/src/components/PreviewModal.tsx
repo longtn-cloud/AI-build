@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 
+import { Button } from './ui/Button'
 import { Document, getDownloadUrl, getPreviewText } from '../lib/api'
 
 type PreviewableDocument = Pick<Document, 'id' | 'file_type'>
@@ -40,12 +41,22 @@ export function PreviewModal({
   }, [document])
 
   return (
-    <div role="dialog">
-      <button onClick={onClose}>Close</button>
-      {content?.kind === 'pdf' && (
-        <iframe title="Document preview" src={content.value} width="100%" height="600" />
-      )}
-      {content?.kind === 'text' && <pre>{content.value}</pre>}
+    <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
+      <div className="max-h-full w-full max-w-3xl overflow-auto rounded-lg bg-white p-4 dark:bg-gray-900">
+        <div className="mb-2 flex justify-end">
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+        {content?.kind === 'pdf' && (
+          <iframe title="Document preview" src={content.value} width="100%" height="600" />
+        )}
+        {content?.kind === 'text' && (
+          <pre className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">
+            {content.value}
+          </pre>
+        )}
+      </div>
     </div>
   )
 }
