@@ -1,5 +1,7 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
+
+import { renderWithQueryClient } from '../test-utils'
 
 vi.mock('../../src/lib/api', () => ({
   search: vi.fn(),
@@ -21,7 +23,7 @@ describe('SearchPage', () => {
       },
     ])
 
-    render(<SearchPage />)
+    renderWithQueryClient(<SearchPage />)
     fireEvent.change(screen.getByLabelText('Search your documents'), {
       target: { value: 'revenue' },
     })
@@ -37,7 +39,7 @@ describe('SearchPage', () => {
   it('shows an empty state when no results are found', async () => {
     ;(search as any).mockResolvedValue([])
 
-    render(<SearchPage />)
+    renderWithQueryClient(<SearchPage />)
     fireEvent.change(screen.getByLabelText('Search your documents'), {
       target: { value: 'nothing matches' },
     })
@@ -51,7 +53,7 @@ describe('SearchPage', () => {
   it('shows an error message when the search request fails', async () => {
     ;(search as any).mockRejectedValue(new Error('Search failed'))
 
-    render(<SearchPage />)
+    renderWithQueryClient(<SearchPage />)
     fireEvent.change(screen.getByLabelText('Search your documents'), {
       target: { value: 'revenue' },
     })
@@ -63,7 +65,7 @@ describe('SearchPage', () => {
   })
 
   it('does not search on an empty query', () => {
-    render(<SearchPage />)
+    renderWithQueryClient(<SearchPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Search' }))
     expect(search).not.toHaveBeenCalled()
   })
