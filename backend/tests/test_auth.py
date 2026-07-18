@@ -1,3 +1,4 @@
+import logging
 import time
 import uuid
 
@@ -40,6 +41,15 @@ def test_missing_header_returns_401():
 def test_invalid_token_returns_401():
     response = client.get("/whoami", headers={"Authorization": "Bearer garbage"})
     assert response.status_code == 401
+
+
+def test_invalid_token_logs_both_verification_failure_reasons(caplog):
+    with caplog.at_level(logging.WARNING):
+        response = client.get("/whoami", headers={"Authorization": "Bearer garbage"})
+
+    assert response.status_code == 401
+    assert "HS256" in caplog.text
+    assert "JWKS" in caplog.text
 
 
 def test_es256_token_verified_via_jwks_returns_user_id(monkeypatch):

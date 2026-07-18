@@ -1,7 +1,11 @@
+import logging
+
 import jwt
 from fastapi import Header, HTTPException
 
 from app.config import settings
+
+logger = logging.getLogger(__name__)
 
 # Supabase projects using the newer JWT Signing Keys feature sign access
 # tokens with an asymmetric key (ES256/RS256) rather than the legacy shared
@@ -27,8 +31,11 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             audience="authenticated",
         )
         return payload["sub"]
-    except jwt.PyJWTError:
-        pass
+    except jwt.PyJWTError as hs256_error:
+        # Expected to fail (and log) for every real Supabase-issued token if
+        # the project doesn't sign with the legacy shared secret - only a
+        # problem if the JWKS fallback below also fails.
+        logger.warning("JWT verification via legacy HS256 secret failed: %r", hs256_error)
 
     try:
         signing_key = _jwks_client.get_signing_key_from_jwt(token)
@@ -39,5 +46,6 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             audience="authenticated",
         )
         return payload["sub"]
-    except jwt.PyJWTError:
+    except jwt.PyJWTError as jwks_error:
+        logger.warning("JWT verification via JWKS fallback failed: %r", jwks_error)
         raise HTTPException(status_code=401, detail="Invalid token")
