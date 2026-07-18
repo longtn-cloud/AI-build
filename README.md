@@ -105,6 +105,24 @@ npm test -- --run  # Vitest, single run
 
 This project follows strict TDD (see `docs/superpowers/plans/`): for any change, write a failing test first, confirm it fails, implement, confirm it passes.
 
+## Deployment
+
+Backend on [Render](https://render.com) (free web service tier) and frontend on [Vercel](https://vercel.com) (free tier) — both free without a credit card.
+
+### Backend (Render)
+
+1. Push this repo to GitHub, then in Render click **New > Blueprint** and point it at the repo. Render reads `render.yaml` from the repo root and creates the `document-knowledge-assistant-api` web service (free plan, `backend/` as root, `uvicorn` start command, `/health` health check).
+2. In the service's **Environment** tab, fill in the values Render left blank: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_DB_URL`, `VOYAGE_API_KEY`, `GEMINI_API_KEY` (same values as your local `backend/.env`).
+3. Deploy, then note the public URL Render assigns (e.g. `https://document-knowledge-assistant-api.onrender.com`).
+
+Free-tier caveat: the service spins down after 15 minutes of inactivity, so the first request after idle takes ~30-60s to wake up.
+
+### Frontend (Vercel)
+
+1. In Vercel, **Add New > Project**, import the same repo, and set **Root Directory** to `frontend`. Vercel auto-detects the Vite preset; `frontend/vercel.json` adds the SPA rewrite so React Router routes work on refresh/direct link.
+2. Add the env vars from `frontend/.env.example` in the project's **Environment Variables** settings: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (same as local), and `VITE_API_BASE_URL` set to the Render URL from above.
+3. Deploy. The backend's CORS is already open (`allow_origins=["*"]`), so no backend change is needed for the new frontend origin.
+
 ## Project layout
 
 ```
