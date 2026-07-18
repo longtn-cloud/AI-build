@@ -1,6 +1,8 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+
+import { renderWithQueryClient } from '../test-utils'
 
 vi.mock('../../src/lib/api', () => ({
   listQuizAttempts: vi.fn(),
@@ -10,7 +12,7 @@ import { listQuizAttempts } from '../../src/lib/api'
 import { QuizHistoryPage } from '../../src/pages/QuizHistoryPage'
 
 function renderQuizHistoryPage() {
-  return render(
+  return renderWithQueryClient(
     <MemoryRouter>
       <QuizHistoryPage />
     </MemoryRouter>,

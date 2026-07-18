@@ -1,19 +1,14 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Card } from '../components/ui/Card'
-import { QuizAttemptSummary, listQuizAttempts } from '../lib/api'
+import { listQuizAttempts } from '../lib/api'
+import { queryKeys } from '../lib/queryKeys'
 
 export function QuizHistoryPage() {
-  const [attempts, setAttempts] = useState<QuizAttemptSummary[] | null>(null)
-  const [error, setError] = useState<string | null>(null)
-
-  useEffect(() => {
-    listQuizAttempts()
-      .then(setAttempts)
-      .catch(() => setError('Failed to load quiz history, try again'))
-  }, [])
+  const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
+  const attempts = attemptsQuery.data ?? null
 
   return (
     <div className="space-y-8">
@@ -26,7 +21,7 @@ export function QuizHistoryPage() {
           Take a quiz
         </Link>
       </div>
-      {error && <Alert>{error}</Alert>}
+      {attemptsQuery.isError && <Alert>Failed to load quiz history, try again</Alert>}
       {attempts !== null && attempts.length === 0 && (
         <p className="font-mono text-sm text-parchment/60">No quiz attempts yet</p>
       )}
