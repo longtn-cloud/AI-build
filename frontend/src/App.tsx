@@ -3,6 +3,7 @@ import { Navigate, Route, Routes } from 'react-router-dom'
 import { AppNav } from './components/AppNav'
 import { ProtectedRoute } from './components/ProtectedRoute'
 import { AuthProvider } from './contexts/AuthContext'
+import { ChatPage } from './pages/ChatPage'
 import { DocumentsPage } from './pages/DocumentsPage'
 import { LoginPage } from './pages/LoginPage'
 import { SearchPage } from './pages/SearchPage'
@@ -29,6 +30,14 @@ export function App() {
             <ProtectedRoute>
               <AppNav />
               <SearchPage />
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/chat"
+          element={
+            <ProtectedRoute>
+              <ChatPage />
             </ProtectedRoute>
           }
         />
