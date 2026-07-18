@@ -25,31 +25,21 @@ export function LoginPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-felt px-4 dark:bg-felt-dark">
+    <div className="flex min-h-screen items-center justify-center bg-app-bg px-4">
       <Card className="w-full max-w-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h1 className="font-display text-2xl font-semibold text-ink dark:text-parchment">
-            Log in
-          </h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Log in</h1>
           {error && <Alert>{error}</Alert>}
           <div className="space-y-1">
-            <label
-              htmlFor="email"
-              className="block font-mono text-xs uppercase tracking-wide text-ink/60 dark:text-parchment/60"
-            >
+            <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wide text-muted">
               Email
             </label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+            <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
           <div className="space-y-1">
             <label
               htmlFor="password"
-              className="block font-mono text-xs uppercase tracking-wide text-ink/60 dark:text-parchment/60"
+              className="block text-xs font-semibold uppercase tracking-wide text-muted"
             >
               Password
             </label>
@@ -63,9 +53,9 @@ export function LoginPage() {
           <Button type="submit" className="w-full">
             Log in
           </Button>
-          <p className="font-body text-sm text-ink/70 dark:text-parchment/70">
+          <p className="text-sm text-muted">
             No account?{' '}
-            <Link to="/signup" className="text-brass hover:underline">
+            <Link to="/signup" className="text-accent-hover hover:underline">
               Sign up
             </Link>
           </p>

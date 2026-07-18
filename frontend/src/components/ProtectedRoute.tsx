@@ -7,7 +7,7 @@ export function ProtectedRoute({ children }: { children: ReactNode }) {
   const { session, loading } = useAuth()
   if (loading) {
     return (
-      <p className="flex min-h-screen items-center justify-center bg-felt font-mono text-sm text-parchment/70 dark:bg-felt-dark">
+      <p className="flex min-h-screen items-center justify-center bg-app-bg font-sans text-sm text-muted">
         Loading...
       </p>
     )

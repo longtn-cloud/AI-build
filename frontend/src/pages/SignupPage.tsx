@@ -25,17 +25,15 @@ export function SignupPage() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-felt px-4 dark:bg-felt-dark">
+    <div className="flex min-h-screen items-center justify-center bg-app-bg px-4">
       <Card className="w-full max-w-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h1 className="font-display text-2xl font-semibold text-ink dark:text-parchment">
-            Sign up
-          </h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Sign up</h1>
           {error && <Alert>{error}</Alert>}
           <div className="space-y-1">
             <label
               htmlFor="signup-email"
-              className="block font-mono text-xs uppercase tracking-wide text-ink/60 dark:text-parchment/60"
+              className="block text-xs font-semibold uppercase tracking-wide text-muted"
             >
               Email
             </label>
@@ -49,7 +47,7 @@ export function SignupPage() {
           <div className="space-y-1">
             <label
               htmlFor="signup-password"
-              className="block font-mono text-xs uppercase tracking-wide text-ink/60 dark:text-parchment/60"
+              className="block text-xs font-semibold uppercase tracking-wide text-muted"
             >
               Password
             </label>
@@ -63,9 +61,9 @@ export function SignupPage() {
           <Button type="submit" className="w-full">
             Sign up
           </Button>
-          <p className="font-body text-sm text-ink/70 dark:text-parchment/70">
+          <p className="text-sm text-muted">
             Already have an account?{' '}
-            <Link to="/login" className="text-brass hover:underline">
+            <Link to="/login" className="text-accent-hover hover:underline">
               Log in
             </Link>
           </p>
