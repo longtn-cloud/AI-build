@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from 'react'
+import { ChangeEvent, DragEvent, useEffect, useState } from 'react'
 
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -25,6 +25,7 @@ export function DocumentsPage() {
   const [documents, setDocuments] = useState<DocumentListItem[]>([])
   const [error, setError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<DocumentListItem | null>(null)
+  const [isDraggingOver, setIsDraggingOver] = useState(false)
 
   async function refresh() {
     try {
@@ -48,17 +49,37 @@ export function DocumentsPage() {
     return () => clearInterval(intervalId)
   }, [documents])
 
-  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) return
+  async function uploadFile(file: File) {
     try {
       await uploadDocument(file)
       await refresh()
     } catch {
       setError('Failed to upload document')
-    } finally {
-      event.target.value = ''
     }
+  }
+
+  async function handleUpload(event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0]
+    if (!file) return
+    await uploadFile(file)
+    event.target.value = ''
+  }
+
+  function handleDragOver(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsDraggingOver(true)
+  }
+
+  function handleDragLeave() {
+    setIsDraggingOver(false)
+  }
+
+  async function handleDrop(event: DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsDraggingOver(false)
+    const file = event.dataTransfer.files?.[0]
+    if (!file) return
+    await uploadFile(file)
   }
 
   async function handleRename(doc: DocumentListItem) {
@@ -95,13 +116,25 @@ export function DocumentsPage() {
     <div className="space-y-8">
       <h1 className="font-display text-2xl font-semibold text-parchment">Your Documents</h1>
       {error && <Alert>{error}</Alert>}
-      <div>
+      <div
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
+        className={
+          isDraggingOver
+            ? 'rounded-sm border-2 border-brass bg-brass/10 p-4'
+            : 'rounded-sm border-2 border-dashed border-brass/40 p-4'
+        }
+      >
         <label
           htmlFor="upload-input"
           className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
         >
           Upload document
         </label>
+        <p className="mb-2 font-body text-sm text-parchment/70">
+          Drag a file here, or click to browse
+        </p>
         <input
           id="upload-input"
           type="file"

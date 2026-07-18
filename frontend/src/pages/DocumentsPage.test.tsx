@@ -60,6 +60,29 @@ describe('DocumentsPage', () => {
     expect(listDocuments).toHaveBeenCalledTimes(2)
   })
 
+  it('uploads a dropped file and refreshes the list', async () => {
+    ;(listDocuments as any).mockResolvedValue([])
+    ;(uploadDocument as any).mockResolvedValue({
+      id: '4',
+      filename: 'dropped.pdf',
+      file_type: 'pdf',
+      status: 'uploading',
+      uploaded_at: '2026-01-01T00:00:00Z',
+    })
+
+    render(<DocumentsPage />)
+    await waitFor(() => expect(listDocuments).toHaveBeenCalledTimes(1))
+
+    const file = new File(['hello'], 'dropped.pdf', { type: 'application/pdf' })
+    const input = screen.getByLabelText('Upload document')
+    fireEvent.drop(input, { dataTransfer: { files: [file] } })
+
+    await waitFor(() => {
+      expect(uploadDocument).toHaveBeenCalledWith(file)
+    })
+    expect(listDocuments).toHaveBeenCalledTimes(2)
+  })
+
   it('renames a document', async () => {
     ;(listDocuments as any).mockResolvedValue([readyDoc])
     ;(renameDocument as any).mockResolvedValue({ ...readyDoc, filename: 'renamed.pdf' })
