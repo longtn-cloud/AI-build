@@ -22,4 +22,16 @@ describe('App', () => {
     )
     expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument()
   })
+
+  it.each(['/documents', '/search', '/quiz', '/quiz/history', '/chat'])(
+    'redirects unauthenticated visitors from %s to the login page',
+    async (path) => {
+      render(
+        <MemoryRouter initialEntries={[path]}>
+          <App />
+        </MemoryRouter>,
+      )
+      expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    },
+  )
 })
