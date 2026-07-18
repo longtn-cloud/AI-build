@@ -41,8 +41,8 @@ export function PreviewModal({
   }, [document])
 
   return (
-    <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-black/50 p-4">
-      <div className="max-h-full w-full max-w-3xl overflow-auto rounded-lg bg-white p-4 dark:bg-gray-900">
+    <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-ink/60 p-4">
+      <div className="max-h-full w-full max-w-3xl overflow-auto rounded-sm border border-rule bg-parchment p-4 dark:border-rule-dark dark:bg-parchment-dark">
         <div className="mb-2 flex justify-end">
           <Button variant="secondary" onClick={onClose}>
             Close
@@ -52,7 +52,7 @@ export function PreviewModal({
           <iframe title="Document preview" src={content.value} width="100%" height="600" />
         )}
         {content?.kind === 'text' && (
-          <pre className="whitespace-pre-wrap text-sm text-gray-900 dark:text-gray-100">
+          <pre className="whitespace-pre-wrap font-mono text-sm text-ink dark:text-parchment">
             {content.value}
           </pre>
         )}

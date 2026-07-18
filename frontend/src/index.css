@@ -1,3 +1,9 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-felt font-body text-parchment dark:bg-felt-dark;
+  }
+}

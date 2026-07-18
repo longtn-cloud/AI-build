@@ -3,6 +3,7 @@ import { FormEvent, useState } from 'react'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { CitationStub } from '../components/ui/CitationStub'
 import { Input } from '../components/ui/Input'
 import { search, SearchResult } from '../lib/api'
 
@@ -28,13 +29,13 @@ export function SearchPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Search</h1>
+    <div className="space-y-8">
+      <h1 className="font-display text-2xl font-semibold text-parchment">Search</h1>
       <form onSubmit={handleSubmit} className="flex items-end gap-2">
         <div className="flex-1">
           <label
             htmlFor="search-input"
-            className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
           >
             Search your documents
           </label>
@@ -43,19 +44,19 @@ export function SearchPage() {
         <Button type="submit">Search</Button>
       </form>
       {error && <Alert>{error}</Alert>}
-      {loading && <p className="text-sm text-gray-500 dark:text-gray-400">Searching...</p>}
+      {loading && <p className="font-mono text-sm text-parchment/60">Searching...</p>}
       {results !== null && !loading && results.length === 0 && (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No results found</p>
+        <p className="font-mono text-sm text-parchment/60">No results found</p>
       )}
       {results !== null && !loading && results.length > 0 && (
         <ul className="space-y-3">
           {results.map((r) => (
             <li key={`${r.document_id}-${r.chunk_index}`}>
-              <Card>
-                <p className="text-sm font-medium text-gray-500 dark:text-gray-400">
+              <Card className="space-y-2">
+                <CitationStub>
                   {r.filename} — passage {r.chunk_index + 1} of {r.total_chunks}
-                </p>
-                <p className="mt-1 text-gray-900 dark:text-gray-100">{r.content}</p>
+                </CitationStub>
+                <p className="font-body text-ink dark:text-parchment">{r.content}</p>
               </Card>
             </li>
           ))}

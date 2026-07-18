@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
+import { CitationStub } from '../components/ui/CitationStub'
 import { Input } from '../components/ui/Input'
 import {
   DocumentListItem,
@@ -68,12 +69,12 @@ export function QuizPage() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Quiz</h1>
+        <h1 className="font-display text-2xl font-semibold text-parchment">Quiz</h1>
         <Link
           to="/quiz/history"
-          className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+          className="font-mono text-xs uppercase tracking-wide text-brass hover:underline"
         >
           Past attempts
         </Link>
@@ -83,7 +84,7 @@ export function QuizPage() {
       {!quiz && (
         <form onSubmit={handleGenerate} className="space-y-4">
           <fieldset className="space-y-2">
-            <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">
+            <legend className="font-mono text-xs uppercase tracking-wide text-parchment/60">
               Select documents
             </legend>
             {documents
@@ -91,13 +92,13 @@ export function QuizPage() {
               .map((doc) => (
                 <label
                   key={doc.id}
-                  className="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm text-gray-900 dark:border-gray-700 dark:text-gray-100"
+                  className="flex items-center gap-2 rounded-sm border border-rule bg-parchment p-3 font-body text-sm text-ink dark:border-rule-dark dark:bg-parchment-dark dark:text-parchment"
                 >
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(doc.id)}
                     onChange={() => toggleDocument(doc.id)}
-                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    className="h-4 w-4 rounded border-rule text-brass focus:ring-brass"
                   />
                   {doc.filename}
                 </label>
@@ -106,7 +107,7 @@ export function QuizPage() {
           <div>
             <label
               htmlFor="num-questions"
-              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+              className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
             >
               Number of questions
             </label>
@@ -129,7 +130,7 @@ export function QuizPage() {
       {quiz && !result && (
         <form onSubmit={handleSubmit} className="space-y-4">
           {quiz.actual_count < quiz.requested_count && (
-            <p className="text-sm text-amber-700 dark:text-amber-400">
+            <p className="font-body text-sm text-amber-400">
               Generated {quiz.actual_count} of the requested {quiz.requested_count} questions — the
               selected documents didn't have enough distinct content for more.
             </p>
@@ -137,13 +138,13 @@ export function QuizPage() {
           {quiz.questions.map((q) => (
             <Card key={q.id}>
               <fieldset className="space-y-2">
-                <legend className="font-medium text-gray-900 dark:text-gray-100">
+                <legend className="font-display font-medium text-ink dark:text-parchment">
                   {q.question}
                 </legend>
                 {q.options.map((option, index) => (
                   <label
                     key={option}
-                    className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+                    className="flex items-center gap-2 font-body text-sm text-ink dark:text-parchment"
                   >
                     <input
                       type="radio"
@@ -151,7 +152,7 @@ export function QuizPage() {
                       value={index}
                       checked={answers[q.id] === index}
                       onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
-                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                      className="h-4 w-4 border-rule text-brass focus:ring-brass"
                     />
                     {option}
                   </label>
@@ -167,7 +168,7 @@ export function QuizPage() {
 
       {result && (
         <Card className="space-y-4">
-          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
+          <p className="font-display text-lg font-semibold text-ink dark:text-parchment">
             {result.score} / {result.total_questions}
           </p>
           <ul className="space-y-3">
@@ -176,21 +177,23 @@ export function QuizPage() {
                 key={r.question_id}
                 className={
                   r.is_correct
-                    ? 'rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950'
-                    : 'rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950'
+                    ? 'rounded-sm border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950'
+                    : 'rounded-sm border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950'
                 }
               >
-                <p className="font-medium text-gray-900 dark:text-gray-100">{r.question}</p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="font-body font-medium text-ink dark:text-parchment">{r.question}</p>
+                <p className="font-body text-sm text-ink/80 dark:text-parchment/80">
                   your answer: {r.selected_option === null ? '(none)' : r.options[r.selected_option]}
                 </p>
-                <p className="text-sm text-gray-700 dark:text-gray-300">
+                <p className="font-body text-sm text-ink/80 dark:text-parchment/80">
                   correct answer: {r.options[r.correct_answer]}
                 </p>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  {r.source_reference.filename} — passage {r.source_reference.chunk_index + 1} of{' '}
-                  {r.source_reference.total_chunks}
-                </p>
+                <div className="mt-1">
+                  <CitationStub>
+                    {r.source_reference.filename} — passage {r.source_reference.chunk_index + 1} of{' '}
+                    {r.source_reference.total_chunks}
+                  </CitationStub>
+                </div>
               </li>
             ))}
           </ul>

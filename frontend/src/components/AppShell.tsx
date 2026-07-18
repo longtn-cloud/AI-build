@@ -4,9 +4,11 @@ import { AppNav } from './AppNav'
 
 export function AppShell({ children }: { children: ReactNode }) {
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950">
+    <div className="flex min-h-screen bg-felt dark:bg-felt-dark">
       <AppNav />
-      <main className="mx-auto max-w-4xl px-4 py-8">{children}</main>
+      <main className="flex-1 px-6 py-10 sm:px-10">
+        <div className="mx-auto max-w-3xl">{children}</div>
+      </main>
     </div>
   )
 }

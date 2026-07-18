@@ -4,11 +4,10 @@ import { twMerge } from 'tailwind-merge'
 type ButtonVariant = 'primary' | 'secondary' | 'danger'
 
 const VARIANT_CLASSES: Record<ButtonVariant, string> = {
-  primary:
-    'bg-indigo-600 text-white hover:bg-indigo-700 disabled:bg-indigo-300 dark:disabled:bg-indigo-900',
+  primary: 'bg-brass text-ink hover:bg-brass/90 disabled:bg-brass/40 disabled:text-ink/50',
   secondary:
-    'border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:text-gray-400 dark:border-gray-600 dark:text-gray-200 dark:hover:bg-gray-800',
-  danger: 'bg-red-600 text-white hover:bg-red-700 disabled:bg-red-300 dark:disabled:bg-red-900',
+    'border border-rule text-ink hover:bg-parchment/70 disabled:text-ink/40 dark:border-rule-dark dark:text-parchment dark:hover:bg-parchment-dark/60',
+  danger: 'bg-oxblood text-parchment hover:bg-oxblood/90 disabled:bg-oxblood/40',
 }
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
@@ -19,7 +18,7 @@ export function Button({ variant = 'primary', className = '', ...rest }: ButtonP
   return (
     <button
       className={twMerge(
-        'rounded-md px-3 py-2 text-sm font-medium transition-colors disabled:cursor-not-allowed',
+        'rounded-sm px-3 py-2 font-body text-sm font-medium tracking-tight transition-colors disabled:cursor-not-allowed',
         VARIANT_CLASSES[variant],
         className,
       )}

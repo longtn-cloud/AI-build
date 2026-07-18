@@ -92,13 +92,13 @@ export function DocumentsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Your Documents</h1>
+    <div className="space-y-8">
+      <h1 className="font-display text-2xl font-semibold text-parchment">Your Documents</h1>
       {error && <Alert>{error}</Alert>}
       <div>
         <label
           htmlFor="upload-input"
-          className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+          className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
         >
           Upload document
         </label>
@@ -106,7 +106,7 @@ export function DocumentsPage() {
           id="upload-input"
           type="file"
           onChange={handleUpload}
-          className="block text-sm text-gray-700 file:mr-4 file:rounded-md file:border-0 file:bg-indigo-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100 dark:text-gray-300 dark:file:bg-indigo-950 dark:file:text-indigo-300"
+          className="block font-body text-sm text-parchment file:mr-4 file:rounded-sm file:border file:border-brass/50 file:bg-transparent file:px-3 file:py-2 file:font-mono file:text-xs file:uppercase file:tracking-wide file:text-brass hover:file:bg-brass/10"
         />
       </div>
       <ul className="space-y-3">
@@ -114,7 +114,7 @@ export function DocumentsPage() {
           <li key={doc.id}>
             <Card className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <span className="font-medium text-gray-900 dark:text-gray-100">
+                <span className="font-body font-medium text-ink dark:text-parchment">
                   {doc.filename}
                 </span>
                 <Badge variant={STATUS_VARIANT[doc.status]}>({doc.status})</Badge>

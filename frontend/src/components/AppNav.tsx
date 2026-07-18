@@ -17,7 +17,7 @@ function SunIcon() {
       fill="none"
       stroke="currentColor"
       strokeWidth={2}
-      className="h-5 w-5"
+      className="h-4 w-4"
       aria-hidden="true"
     >
       <circle cx="12" cy="12" r="4" />
@@ -28,12 +28,7 @@ function SunIcon() {
 
 function MoonIcon() {
   return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="currentColor"
-      className="h-5 w-5"
-      aria-hidden="true"
-    >
+    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
       <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
     </svg>
   )
@@ -44,31 +39,38 @@ export function AppNav() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="border-b border-gray-200 bg-white dark:border-gray-800 dark:bg-gray-900">
-      <div className="mx-auto flex max-w-4xl items-center justify-between px-4 py-3">
-        <div className="flex gap-4">
-          {LINKS.map((link) => (
-            <Link
-              key={link.to}
-              to={link.to}
-              className={
-                location.pathname === link.to
-                  ? 'text-sm font-medium text-indigo-600 dark:text-indigo-400'
-                  : 'text-sm font-medium text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-gray-100'
-              }
-            >
-              {link.label}
-            </Link>
-          ))}
-        </div>
-        <button
-          onClick={toggleTheme}
-          aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-          className="rounded-md p-2 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800"
-        >
-          {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-        </button>
+    <nav className="flex w-56 flex-shrink-0 flex-col border-r border-brass/30 px-5 py-8">
+      <div className="mb-10 border-b border-brass/30 pb-4">
+        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-brass">
+          Reading Room
+        </p>
+        <p className="font-display text-lg font-semibold leading-tight text-parchment">
+          Document Knowledge Assistant
+        </p>
       </div>
+      <div className="flex flex-1 flex-col gap-1">
+        {LINKS.map((link) => (
+          <Link
+            key={link.to}
+            to={link.to}
+            className={
+              location.pathname === link.to
+                ? 'rounded-sm bg-brass/20 px-3 py-2 font-body text-sm font-medium text-brass'
+                : 'rounded-sm px-3 py-2 font-body text-sm text-parchment/70 transition-colors hover:bg-parchment/10 hover:text-parchment'
+            }
+          >
+            {link.label}
+          </Link>
+        ))}
+      </div>
+      <button
+        onClick={toggleTheme}
+        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
+        className="mt-6 flex items-center justify-center gap-2 rounded-sm border border-brass/30 px-3 py-2 font-mono text-xs text-parchment/70 hover:bg-parchment/10"
+      >
+        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
+        {theme === 'dark' ? 'Light' : 'Dark'}
+      </button>
     </nav>
   )
 }
