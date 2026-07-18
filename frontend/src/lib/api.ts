@@ -139,3 +139,73 @@ export async function sendChatMessage(
   if (!res.ok) throw new Error('Failed to send message')
   return res.json()
 }
+
+export type QuizQuestion = { id: string; question: string; options: string[] }
+
+export type Quiz = {
+  id: string
+  document_ids: string[]
+  requested_count: number
+  actual_count: number
+  created_at: string
+  questions: QuizQuestion[]
+}
+
+export async function generateQuiz(documentIds: string[], numQuestions: number): Promise<Quiz> {
+  const res = await fetch(`${API_BASE}/quiz/generate`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ document_ids: documentIds, num_questions: numQuestions }),
+  })
+  if (!res.ok) throw new Error('Failed to generate quiz')
+  return res.json()
+}
+
+export type QuizAnswer = { question_id: string; selected_option: number }
+
+export type QuizResult = {
+  question_id: string
+  question: string
+  options: string[]
+  selected_option: number | null
+  correct_answer: number
+  is_correct: boolean
+  source_reference: { document_id: string; filename: string; chunk_index: number; total_chunks: number }
+}
+
+export type QuizAttemptResult = {
+  id: string
+  quiz_id: string
+  score: number
+  total_questions: number
+  completed_at: string
+  results: QuizResult[]
+}
+
+export async function submitQuizAttempt(quizId: string, answers: QuizAnswer[]): Promise<QuizAttemptResult> {
+  const res = await fetch(`${API_BASE}/quiz/${quizId}/attempts`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answers }),
+  })
+  if (!res.ok) throw new Error('Failed to submit quiz attempt')
+  return res.json()
+}
+
+export type QuizAttemptSummary = {
+  id: string
+  quiz_id: string
+  score: number
+  total_questions: number
+  completed_at: string
+  document_filenames: string[]
+}
+
+export async function listQuizAttempts(): Promise<QuizAttemptSummary[]> {
+  const res = await fetch(`${API_BASE}/quiz/attempts`, {
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to load quiz history')
+  const data = await res.json()
+  return data.attempts
+}

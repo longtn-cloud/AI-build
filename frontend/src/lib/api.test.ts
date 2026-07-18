@@ -11,12 +11,15 @@ vi.mock('./supabaseClient', () => ({
 import {
   createChatSession,
   deleteDocument,
+  generateQuiz,
   getDownloadUrl,
   getPreviewText,
   listDocuments,
+  listQuizAttempts,
   renameDocument,
   search,
   sendChatMessage,
+  submitQuizAttempt,
   uploadDocument,
 } from './api'
 
@@ -211,5 +214,92 @@ describe('api client', () => {
     ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
 
     await expect(sendChatMessage('session-1', 'hello', false)).rejects.toThrow('Failed to send message')
+  })
+
+  it('generateQuiz sends document_ids and num_questions and returns the quiz', async () => {
+    const quiz = {
+      id: 'quiz-1',
+      document_ids: ['doc-1'],
+      requested_count: 5,
+      actual_count: 5,
+      created_at: '2026-07-18T00:00:00Z',
+      questions: [{ id: 'q-1', question: 'What is the refund window?', options: ['7 days', '30 days', '60 days', '90 days'] }],
+    }
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => quiz })
+
+    const result = await generateQuiz(['doc-1'], 5)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/generate'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ document_ids: ['doc-1'], num_questions: 5 }),
+      }),
+    )
+    expect(result).toEqual(quiz)
+  })
+
+  it('generateQuiz fails when the request is not ok', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
+
+    await expect(generateQuiz(['doc-1'], 5)).rejects.toThrow('Failed to generate quiz')
+  })
+
+  it('submitQuizAttempt sends answers and returns the scored result', async () => {
+    const result = {
+      id: 'attempt-1',
+      quiz_id: 'quiz-1',
+      score: 1,
+      total_questions: 1,
+      completed_at: '2026-07-18T00:01:00Z',
+      results: [
+        {
+          question_id: 'q-1',
+          question: 'What is the refund window?',
+          options: ['7 days', '30 days', '60 days', '90 days'],
+          selected_option: 1,
+          correct_answer: 1,
+          is_correct: true,
+          source_reference: { document_id: 'doc-1', filename: 'policy.pdf', chunk_index: 1, total_chunks: 3 },
+        },
+      ],
+    }
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => result })
+
+    const answers = [{ question_id: 'q-1', selected_option: 1 }]
+    const returned = await submitQuizAttempt('quiz-1', answers)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/quiz-1/attempts'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ answers }),
+      }),
+    )
+    expect(returned).toEqual(result)
+  })
+
+  it('listQuizAttempts sends an authorized GET request and returns attempts', async () => {
+    const attempts = [
+      {
+        id: 'attempt-1',
+        quiz_id: 'quiz-1',
+        score: 1,
+        total_questions: 1,
+        completed_at: '2026-07-18T00:01:00Z',
+        document_filenames: ['policy.pdf'],
+      },
+    ]
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({ attempts }) })
+
+    const result = await listQuizAttempts()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/attempts'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
+    expect(result).toEqual(attempts)
   })
 })
