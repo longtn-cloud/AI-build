@@ -11,8 +11,8 @@ from tests.helpers import make_token
 
 client = TestClient(app)
 
-TARGET_VEC = [1.0] + [0.0] * 511
-DISTRACTOR_VEC = [0.0, 1.0] + [0.0] * 510
+TARGET_VEC = [1.0] + [0.0] * 383
+DISTRACTOR_VEC = [0.0, 1.0] + [0.0] * 382
 
 
 def _create_user() -> tuple[str, dict]:

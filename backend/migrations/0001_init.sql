@@ -17,7 +17,7 @@ create table chunks (
     id bigserial primary key,
     document_id uuid not null references documents(id) on delete cascade,
     content text not null,
-    embedding vector(512) not null,
+    embedding vector(384) not null,
     chunk_index integer not null
 );
 

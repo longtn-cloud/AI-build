@@ -26,7 +26,7 @@ def test_process_document_success(monkeypatch):
     _, document_id = _create_document()
 
     monkeypatch.setattr(processing, "download_file", lambda path: b"hello world, this is content")
-    monkeypatch.setattr(processing, "embed_texts", lambda pieces: [[0.1] * 512 for _ in pieces])
+    monkeypatch.setattr(processing, "embed_texts", lambda pieces: [[0.1] * 384 for _ in pieces])
 
     processing.process_document(document_id)
 

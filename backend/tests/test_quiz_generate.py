@@ -36,7 +36,7 @@ def _create_document_with_chunks(user_id: str, filename: str, chunk_count: int) 
                 INSERT INTO chunks (document_id, content, embedding, chunk_index)
                 VALUES (%s, %s, %s, %s)
                 """,
-                (document_id, f"chunk {index} content", [0.0] * 512, index),
+                (document_id, f"chunk {index} content", [0.0] * 384, index),
             )
     return document_id
 

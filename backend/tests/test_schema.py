@@ -18,7 +18,7 @@ def test_can_insert_and_read_document_with_chunk():
             """,
             (document_id, user_id, f"{user_id}/{document_id}.pdf"),
         )
-        embedding = [0.1] * 512
+        embedding = [0.1] * 384
         conn.execute(
             """
             INSERT INTO chunks (document_id, content, embedding, chunk_index)

@@ -6,7 +6,6 @@ class Settings(BaseSettings):
     supabase_service_role_key: str
     supabase_jwt_secret: str
     supabase_db_url: str
-    voyage_api_key: str
     gemini_api_key: str
     storage_bucket: str = "documents"
     max_upload_bytes: int = 20 * 1024 * 1024

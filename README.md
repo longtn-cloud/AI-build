@@ -9,10 +9,10 @@ Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/p
 - **Frontend:** React 18 + Vite + TypeScript, Tailwind CSS, React Router, Vitest + Testing Library
 - **Backend:** FastAPI + psycopg3, pytest
 - **Database / Auth / Storage:** Supabase (Postgres + `pgvector`, Auth, object storage)
-- **Embeddings:** Voyage AI (`voyage-3-lite`, 512-dim vectors)
+- **Embeddings:** local, in-process (`sentence-transformers`, `all-MiniLM-L6-v2`, 384-dim vectors) — no API key required
 - **LLM:** Gemini API (`gemini-2.5-flash`) — chat Q&A and quiz generation
 
-Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Voyage AI / Gemini APIs.
+Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Gemini API.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and �
 - Node 20+
 - Docker (for the local test database)
 - A Supabase project (free tier is enough) with the `pgvector` extension available
-- API keys: Voyage AI, Google AI Studio (Gemini)
+- API keys: Google AI Studio (Gemini)
 
 ## Configuration
 
@@ -37,7 +37,6 @@ cp .env.example .env
 | `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (server-side only, never expose to the frontend) |
 | `SUPABASE_JWT_SECRET` | Used to verify user auth tokens on incoming requests |
 | `SUPABASE_DB_URL` | Direct Postgres connection string for the same project |
-| `VOYAGE_API_KEY` | Voyage AI API key (embeddings) |
 | `GEMINI_API_KEY` | Gemini API key (chat + quiz generation) |
 | `STORAGE_BUCKET` | Supabase Storage bucket name for uploaded files (default `documents`) |
 
@@ -114,13 +113,31 @@ npm test -- --run  # Vitest, single run
 
 This project follows strict TDD (see `docs/superpowers/plans/`): for any change, write a failing test first, confirm it fails, implement, confirm it passes.
 
+## Deployment
+
+Backend on [Render](https://render.com) (free web service tier) and frontend on [Vercel](https://vercel.com) (free tier) - both free without a credit card.
+
+### Backend (Render)
+
+1. Push this repo to GitHub, then in Render click **New > Blueprint** and point it at the repo. Render reads `render.yaml` from the repo root and creates the `document-knowledge-assistant-api` web service (free plan, `backend/` as root, `uvicorn` start command, `/health` health check).
+2. In the service's **Environment** tab, fill in the values Render left blank: `SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`, `SUPABASE_JWT_SECRET`, `SUPABASE_DB_URL`, `VOYAGE_API_KEY`, `GEMINI_API_KEY` (same values as your local `backend/.env`).
+3. Deploy, then note the public URL Render assigns (e.g. `https://document-knowledge-assistant-api.onrender.com`).
+
+Free-tier caveat: the service spins down after 15 minutes of inactivity, so the first request after idle takes ~30-60s to wake up.
+
+### Frontend (Vercel)
+
+1. In Vercel, **Add New > Project**, import the same repo, and set **Root Directory** to `frontend`. Vercel auto-detects the Vite preset; `frontend/vercel.json` adds the SPA rewrite so React Router routes work on refresh/direct link.
+2. Add the env vars from `frontend/.env.example` in the project's **Environment Variables** settings: `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (same as local), and `VITE_API_BASE_URL` set to the Render URL from above.
+3. Deploy. The backend's CORS is already open (`allow_origins=["*"]`), so no backend change is needed for the new frontend origin.
+
 ## Project layout
 
 ```
 backend/
   app/
     routers/       # documents, search, chat, quiz — one file per feature
-    services/       # embeddings.py (Voyage), llm.py (Gemini), extraction/chunking/processing/storage
+    services/       # embeddings.py (local sentence-transformers), llm.py (Gemini), extraction/chunking/processing/storage
     auth.py         # Supabase JWT verification -> get_current_user_id dependency
     db.py           # get_conn() -> psycopg connection
     config.py       # Settings (env vars)
