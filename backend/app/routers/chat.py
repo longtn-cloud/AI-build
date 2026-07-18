@@ -79,32 +79,34 @@ async def send_message(
             (user_message_id, session_id, body.content),
         ).fetchone()
 
+    try:
         if body.web_search:
             answer_text = answer_with_web_search(body.content)
             citations: list[dict] = []
             used_web_search = True
         else:
             query_embedding = embed_query(body.content)
-            chunk_rows = conn.execute(
-                """
-                SELECT * FROM (
-                    SELECT
-                        d.id AS document_id,
-                        d.filename,
-                        c.chunk_index,
-                        c.content,
-                        1 - (c.embedding <=> %s::vector) AS score,
-                        count(*) OVER (PARTITION BY c.document_id) AS total_chunks
-                    FROM chunks c
-                    JOIN documents d ON d.id = c.document_id
-                    WHERE d.user_id = %s
-                ) sub
-                WHERE sub.score >= %s
-                ORDER BY sub.score DESC
-                LIMIT 10
-                """,
-                (query_embedding, user_id, MIN_SIMILARITY_THRESHOLD),
-            ).fetchall()
+            with get_conn() as conn:
+                chunk_rows = conn.execute(
+                    """
+                    SELECT * FROM (
+                        SELECT
+                            d.id AS document_id,
+                            d.filename,
+                            c.chunk_index,
+                            c.content,
+                            1 - (c.embedding <=> %s::vector) AS score,
+                            count(*) OVER (PARTITION BY c.document_id) AS total_chunks
+                        FROM chunks c
+                        JOIN documents d ON d.id = c.document_id
+                        WHERE d.user_id = %s
+                    ) sub
+                    WHERE sub.score >= %s
+                    ORDER BY sub.score DESC
+                    LIMIT 10
+                    """,
+                    (query_embedding, user_id, MIN_SIMILARITY_THRESHOLD),
+                ).fetchall()
 
             if not chunk_rows:
                 answer_text = NOT_FOUND_MESSAGE
@@ -124,7 +126,12 @@ async def send_message(
                 answer_text = answer_from_chunks(body.content, chunks)
                 citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]
             used_web_search = False
+    except Exception as exc:
+        raise HTTPException(
+            status_code=502, detail="Failed to generate a response, please try again"
+        ) from exc
 
+    with get_conn() as conn:
         assistant_message_id = str(uuid.uuid4())
         assistant_row = conn.execute(
             """
