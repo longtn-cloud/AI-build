@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Alert } from '../components/ui/Alert'
+import { Card } from '../components/ui/Card'
 import { QuizAttemptSummary, listQuizAttempts } from '../lib/api'
 
 export function QuizHistoryPage() {
@@ -14,16 +16,27 @@ export function QuizHistoryPage() {
   }, [])
 
   return (
-    <div>
-      <h1>Past Quiz Attempts</h1>
-      <Link to="/quiz">Take a quiz</Link>
-      {error && <p role="alert">{error}</p>}
-      {attempts !== null && attempts.length === 0 && <p>No quiz attempts yet</p>}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+          Past Quiz Attempts
+        </h1>
+        <Link to="/quiz" className="text-sm text-indigo-600 hover:underline dark:text-indigo-400">
+          Take a quiz
+        </Link>
+      </div>
+      {error && <Alert>{error}</Alert>}
+      {attempts !== null && attempts.length === 0 && (
+        <p className="text-sm text-gray-500 dark:text-gray-400">No quiz attempts yet</p>
+      )}
       {attempts !== null && attempts.length > 0 && (
-        <ul>
+        <ul className="space-y-3">
           {attempts.map((a) => (
             <li key={a.id}>
-              {a.score} / {a.total_questions} — {a.document_filenames.join(', ')} — {a.completed_at}
+              <Card className="text-sm text-gray-900 dark:text-gray-100">
+                {a.score} / {a.total_questions} — {a.document_filenames.join(', ')} —{' '}
+                {a.completed_at}
+              </Card>
             </li>
           ))}
         </ul>
