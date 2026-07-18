@@ -1,6 +1,10 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 
+import { Alert } from '../components/ui/Alert'
+import { Button } from '../components/ui/Button'
+import { Card } from '../components/ui/Card'
+import { Input } from '../components/ui/Input'
 import {
   DocumentListItem,
   Quiz,
@@ -64,93 +68,133 @@ export function QuizPage() {
   }
 
   return (
-    <div>
-      <h1>Quiz</h1>
-      <Link to="/quiz/history">Past attempts</Link>
-      {error && <p role="alert">{error}</p>}
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-semibold text-gray-900 dark:text-gray-100">Quiz</h1>
+        <Link
+          to="/quiz/history"
+          className="text-sm text-indigo-600 hover:underline dark:text-indigo-400"
+        >
+          Past attempts
+        </Link>
+      </div>
+      {error && <Alert>{error}</Alert>}
 
       {!quiz && (
-        <form onSubmit={handleGenerate}>
-          <fieldset>
-            <legend>Select documents</legend>
+        <form onSubmit={handleGenerate} className="space-y-4">
+          <fieldset className="space-y-2">
+            <legend className="text-sm font-medium text-gray-700 dark:text-gray-300">
+              Select documents
+            </legend>
             {documents
               .filter((doc) => doc.status === 'ready')
               .map((doc) => (
-                <label key={doc.id}>
+                <label
+                  key={doc.id}
+                  className="flex items-center gap-2 rounded-md border border-gray-200 p-3 text-sm text-gray-900 dark:border-gray-700 dark:text-gray-100"
+                >
                   <input
                     type="checkbox"
                     checked={selectedIds.includes(doc.id)}
                     onChange={() => toggleDocument(doc.id)}
+                    className="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
                   />
                   {doc.filename}
                 </label>
               ))}
           </fieldset>
-          <label htmlFor="num-questions">Number of questions</label>
-          <input
-            id="num-questions"
-            type="number"
-            min={5}
-            max={20}
-            value={numQuestions}
-            onChange={(e) => setNumQuestions(Number(e.target.value))}
-          />
-          <button type="submit" disabled={loading}>
+          <div>
+            <label
+              htmlFor="num-questions"
+              className="mb-1 block text-sm font-medium text-gray-700 dark:text-gray-300"
+            >
+              Number of questions
+            </label>
+            <Input
+              id="num-questions"
+              type="number"
+              min={5}
+              max={20}
+              value={numQuestions}
+              onChange={(e) => setNumQuestions(Number(e.target.value))}
+              className="w-24"
+            />
+          </div>
+          <Button type="submit" disabled={loading}>
             Generate Quiz
-          </button>
+          </Button>
         </form>
       )}
 
       {quiz && !result && (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="space-y-4">
           {quiz.actual_count < quiz.requested_count && (
-            <p>
+            <p className="text-sm text-amber-700 dark:text-amber-400">
               Generated {quiz.actual_count} of the requested {quiz.requested_count} questions — the
               selected documents didn't have enough distinct content for more.
             </p>
           )}
           {quiz.questions.map((q) => (
-            <fieldset key={q.id}>
-              <legend>{q.question}</legend>
-              {q.options.map((option, index) => (
-                <label key={option}>
-                  <input
-                    type="radio"
-                    name={q.id}
-                    value={index}
-                    checked={answers[q.id] === index}
-                    onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
-                  />
-                  {option}
-                </label>
-              ))}
-            </fieldset>
+            <Card key={q.id}>
+              <fieldset className="space-y-2">
+                <legend className="font-medium text-gray-900 dark:text-gray-100">
+                  {q.question}
+                </legend>
+                {q.options.map((option, index) => (
+                  <label
+                    key={option}
+                    className="flex items-center gap-2 text-sm text-gray-700 dark:text-gray-300"
+                  >
+                    <input
+                      type="radio"
+                      name={q.id}
+                      value={index}
+                      checked={answers[q.id] === index}
+                      onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
+                      className="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-500"
+                    />
+                    {option}
+                  </label>
+                ))}
+              </fieldset>
+            </Card>
           ))}
-          <button type="submit" disabled={loading}>
+          <Button type="submit" disabled={loading}>
             Submit
-          </button>
+          </Button>
         </form>
       )}
 
       {result && (
-        <div>
-          <p>
+        <Card className="space-y-4">
+          <p className="text-lg font-semibold text-gray-900 dark:text-gray-100">
             {result.score} / {result.total_questions}
           </p>
-          <ul>
+          <ul className="space-y-3">
             {result.results.map((r) => (
-              <li key={r.question_id}>
-                <p>{r.question}</p>
-                <p>your answer: {r.selected_option === null ? '(none)' : r.options[r.selected_option]}</p>
-                <p>correct answer: {r.options[r.correct_answer]}</p>
-                <p>
+              <li
+                key={r.question_id}
+                className={
+                  r.is_correct
+                    ? 'rounded-md border border-green-200 bg-green-50 p-3 dark:border-green-900 dark:bg-green-950'
+                    : 'rounded-md border border-red-200 bg-red-50 p-3 dark:border-red-900 dark:bg-red-950'
+                }
+              >
+                <p className="font-medium text-gray-900 dark:text-gray-100">{r.question}</p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  your answer: {r.selected_option === null ? '(none)' : r.options[r.selected_option]}
+                </p>
+                <p className="text-sm text-gray-700 dark:text-gray-300">
+                  correct answer: {r.options[r.correct_answer]}
+                </p>
+                <p className="text-sm text-gray-500 dark:text-gray-400">
                   {r.source_reference.filename} — passage {r.source_reference.chunk_index + 1} of{' '}
                   {r.source_reference.total_chunks}
                 </p>
               </li>
             ))}
           </ul>
-        </div>
+        </Card>
       )}
     </div>
   )
