@@ -1,76 +1,85 @@
 import { Link, useLocation } from 'react-router-dom'
+import { useQuery } from '@tanstack/react-query'
 
-import { useTheme } from '../contexts/ThemeContext'
+import { useAuth } from '../contexts/AuthContext'
+import { listDocuments } from '../lib/api'
+import { queryKeys } from '../lib/queryKeys'
 
 const LINKS = [
-  { to: '/documents', label: 'Documents' },
+  { to: '/documents', label: 'Documents', badge: true },
   { to: '/search', label: 'Search' },
-  { to: '/chat', label: 'Chat' },
+  { to: '/chat', label: 'AI Assistant' },
   { to: '/quiz', label: 'Quiz' },
   { to: '/quiz/history', label: 'Quiz History' },
 ]
 
-function SunIcon() {
-  return (
-    <svg
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth={2}
-      className="h-4 w-4"
-      aria-hidden="true"
-    >
-      <circle cx="12" cy="12" r="4" />
-      <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
-    </svg>
-  )
-}
-
-function MoonIcon() {
-  return (
-    <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true">
-      <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-    </svg>
-  )
-}
-
 export function AppNav() {
   const location = useLocation()
-  const { theme, toggleTheme } = useTheme()
+  const { session, signOut } = useAuth()
+  const documentsQuery = useQuery({ queryKey: queryKeys.documents, queryFn: listDocuments })
+  const docCount = documentsQuery.data?.length ?? 0
+  const email = session?.user?.email ?? ''
+  const initials = email.slice(0, 2).toUpperCase()
 
   return (
-    <nav className="flex w-56 flex-shrink-0 flex-col border-r border-brass/30 px-5 py-8">
-      <div className="mb-10 border-b border-brass/30 pb-4">
-        <p className="font-mono text-[0.65rem] uppercase tracking-[0.2em] text-brass">
-          Reading Room
-        </p>
-        <p className="font-display text-lg font-semibold leading-tight text-parchment">
-          Document Knowledge Assistant
-        </p>
+    <nav className="flex w-[264px] flex-shrink-0 flex-col bg-sidebar px-4 py-[22px] text-[#C4CED4]">
+      <div className="flex items-center gap-[11px] px-2 pb-[22px] pt-1">
+        <div className="flex h-[38px] w-[38px] items-center justify-center rounded-[11px_11px_11px_4px] border-[3px] border-accent">
+          <span className="h-[5px] w-[5px] rounded-full bg-accent" />
+        </div>
+        <div>
+          <div className="text-lg font-extrabold leading-none tracking-tight text-white">
+            DigiAgent
+          </div>
+          <div className="mt-[3px] text-[10px] font-semibold tracking-wide text-accent">
+            Knowledge Base
+          </div>
+        </div>
       </div>
-      <div className="flex flex-1 flex-col gap-1">
+
+      <Link
+        to="/documents"
+        className="mb-[18px] flex items-center justify-center gap-2 rounded-[10px] bg-accent py-3 font-sans text-sm font-bold text-white hover:bg-accent-hover"
+      >
+        Upload documents
+      </Link>
+
+      <div className="flex flex-col gap-[3px]">
         {LINKS.map((link) => (
           <Link
             key={link.to}
             to={link.to}
             className={
               location.pathname === link.to
-                ? 'rounded-sm bg-brass/20 px-3 py-2 font-body text-sm font-medium text-brass'
-                : 'rounded-sm px-3 py-2 font-body text-sm text-parchment/70 transition-colors hover:bg-parchment/10 hover:text-parchment'
+                ? 'flex items-center gap-3 rounded-[9px] bg-accent px-3 py-[11px] text-sm font-semibold text-white'
+                : 'flex items-center gap-3 rounded-[9px] px-3 py-[11px] text-sm font-semibold text-[#AEBBC2] hover:bg-white/5'
             }
           >
-            {link.label}
+            <span className="flex-1 text-left">{link.label}</span>
+            {link.badge && docCount > 0 && (
+              <span className="rounded-full bg-accent/20 px-2 py-0.5 text-[11px] font-bold text-[#6BD47C]">
+                {docCount}
+              </span>
+            )}
           </Link>
         ))}
       </div>
-      <button
-        onClick={toggleTheme}
-        aria-label={theme === 'dark' ? 'Switch to light theme' : 'Switch to dark theme'}
-        className="mt-6 flex items-center justify-center gap-2 rounded-sm border border-brass/30 px-3 py-2 font-mono text-xs text-parchment/70 hover:bg-parchment/10"
-      >
-        {theme === 'dark' ? <SunIcon /> : <MoonIcon />}
-        {theme === 'dark' ? 'Light' : 'Dark'}
-      </button>
+
+      <div className="mt-auto flex items-center gap-[10px] pt-[18px]">
+        <div className="flex h-[34px] w-[34px] flex-shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-accent to-accent-hover text-[13px] font-bold text-white">
+          {initials}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[13px] font-semibold text-white">{email}</div>
+        </div>
+        <button
+          onClick={signOut}
+          aria-label="Sign out"
+          className="flex-shrink-0 text-[11px] font-semibold text-[#7C8992] hover:text-white"
+        >
+          Sign out
+        </button>
+      </div>
     </nav>
   )
 }
