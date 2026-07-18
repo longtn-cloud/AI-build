@@ -2,12 +2,12 @@ import { render, screen, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   listQuizAttempts: vi.fn(),
 }))
 
-import { listQuizAttempts } from '../lib/api'
-import { QuizHistoryPage } from './QuizHistoryPage'
+import { listQuizAttempts } from '../../src/lib/api'
+import { QuizHistoryPage } from '../../src/pages/QuizHistoryPage'
 
 function renderQuizHistoryPage() {
   return render(

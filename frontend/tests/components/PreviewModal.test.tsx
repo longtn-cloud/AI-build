@@ -1,13 +1,13 @@
 import { render, screen, waitFor } from '@testing-library/react'
 import { describe, expect, it, vi, beforeEach } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   getDownloadUrl: vi.fn(),
   getPreviewText: vi.fn(),
 }))
 
-import { getDownloadUrl, getPreviewText } from '../lib/api'
-import { PreviewModal } from './PreviewModal'
+import { getDownloadUrl, getPreviewText } from '../../src/lib/api'
+import { PreviewModal } from '../../src/components/PreviewModal'
 
 const baseDoc = {
   id: '1',

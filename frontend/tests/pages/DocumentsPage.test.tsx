@@ -1,7 +1,7 @@
 import { act, render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
   uploadDocument: vi.fn(),
   renameDocument: vi.fn(),
@@ -15,8 +15,8 @@ import {
   listDocuments,
   renameDocument,
   uploadDocument,
-} from '../lib/api'
-import { DocumentsPage } from './DocumentsPage'
+} from '../../src/lib/api'
+import { DocumentsPage } from '../../src/pages/DocumentsPage'
 
 const readyDoc = {
   id: '1',

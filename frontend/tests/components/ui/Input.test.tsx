@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-import { Input } from './Input'
+import { Input } from '../../../src/components/ui/Input'
 
 describe('Input', () => {
   it('forwards its value and calls onChange with the new value', () => {

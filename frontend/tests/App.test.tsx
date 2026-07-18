@@ -2,9 +2,9 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-import { App } from './App'
+import { App } from '../src/App'
 
-vi.mock('./lib/supabaseClient', () => ({
+vi.mock('../src/lib/supabaseClient', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),

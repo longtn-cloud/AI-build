@@ -1,12 +1,12 @@
 import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   search: vi.fn(),
 }))
 
-import { search } from '../lib/api'
-import { SearchPage } from './SearchPage'
+import { search } from '../../src/lib/api'
+import { SearchPage } from '../../src/pages/SearchPage'
 
 describe('SearchPage', () => {
   it('renders results after submitting a query', async () => {

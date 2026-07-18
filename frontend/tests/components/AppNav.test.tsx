@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { ThemeProvider } from '../contexts/ThemeContext'
-import { AppNav } from './AppNav'
+import { ThemeProvider } from '../../src/contexts/ThemeContext'
+import { AppNav } from '../../src/components/AppNav'
 
 function renderAppNav() {
   return render(

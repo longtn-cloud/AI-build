@@ -2,8 +2,8 @@ import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
 
-import { ThemeProvider } from '../contexts/ThemeContext'
-import { AppShell } from './AppShell'
+import { ThemeProvider } from '../../src/contexts/ThemeContext'
+import { AppShell } from '../../src/components/AppShell'
 
 describe('AppShell', () => {
   it('renders the nav and its children', () => {

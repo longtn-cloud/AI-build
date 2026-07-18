@@ -2,14 +2,14 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
   generateQuiz: vi.fn(),
   submitQuizAttempt: vi.fn(),
 }))
 
-import { generateQuiz, listDocuments, submitQuizAttempt } from '../lib/api'
-import { QuizPage } from './QuizPage'
+import { generateQuiz, listDocuments, submitQuizAttempt } from '../../src/lib/api'
+import { QuizPage } from '../../src/pages/QuizPage'
 
 function renderQuizPage() {
   return render(

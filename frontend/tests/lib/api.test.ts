@@ -1,6 +1,6 @@
 import { describe, expect, it, vi, beforeEach, afterAll } from 'vitest'
 
-vi.mock('./supabaseClient', () => ({
+vi.mock('../../src/lib/supabaseClient', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'test-token' } } }),
@@ -21,7 +21,7 @@ import {
   sendChatMessage,
   submitQuizAttempt,
   uploadDocument,
-} from './api'
+} from '../../src/lib/api'
 
 const originalFetch = globalThis.fetch
 

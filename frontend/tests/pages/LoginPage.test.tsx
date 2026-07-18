@@ -2,11 +2,11 @@ import { render, screen, fireEvent, waitFor } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-import { AuthProvider } from '../contexts/AuthContext'
-import { LoginPage } from './LoginPage'
-import { supabase } from '../lib/supabaseClient'
+import { AuthProvider } from '../../src/contexts/AuthContext'
+import { LoginPage } from '../../src/pages/LoginPage'
+import { supabase } from '../../src/lib/supabaseClient'
 
-vi.mock('../lib/supabaseClient', () => ({
+vi.mock('../../src/lib/supabaseClient', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),

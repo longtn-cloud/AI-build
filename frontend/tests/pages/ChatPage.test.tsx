@@ -2,13 +2,13 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
-vi.mock('../lib/api', () => ({
+vi.mock('../../src/lib/api', () => ({
   createChatSession: vi.fn(),
   sendChatMessage: vi.fn(),
 }))
 
-import { createChatSession, sendChatMessage } from '../lib/api'
-import { ChatPage } from './ChatPage'
+import { createChatSession, sendChatMessage } from '../../src/lib/api'
+import { ChatPage } from '../../src/pages/ChatPage'
 
 function renderChatPage() {
   return render(
