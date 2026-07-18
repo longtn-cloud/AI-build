@@ -166,3 +166,138 @@ async def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_cu
             for r in question_rows
         ],
     }
+
+
+class SubmitAnswer(BaseModel):
+    question_id: str
+    selected_option: int
+
+
+class SubmitAttemptRequest(BaseModel):
+    answers: list[SubmitAnswer]
+
+
+@router.post("/{quiz_id}/attempts", status_code=201)
+async def submit_attempt(
+    quiz_id: str,
+    body: SubmitAttemptRequest,
+    user_id: str = Depends(get_current_user_id),
+):
+    with get_conn() as conn:
+        quiz_row = conn.execute(
+            "SELECT id FROM quizzes WHERE id = %s AND user_id = %s",
+            (quiz_id, user_id),
+        ).fetchone()
+        if quiz_row is None:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+
+        question_rows = conn.execute(
+            """
+            SELECT id, question_index, question, options, correct_answer, source_reference
+            FROM quiz_questions
+            WHERE quiz_id = %s
+            ORDER BY question_index
+            """,
+            (quiz_id,),
+        ).fetchall()
+
+        question_ids = {str(r["id"]) for r in question_rows}
+        submitted_ids = [a.question_id for a in body.answers]
+        if len(submitted_ids) != len(set(submitted_ids)):
+            raise HTTPException(status_code=400, detail="Duplicate question_id in answers")
+        for answer in body.answers:
+            if answer.question_id not in question_ids:
+                raise HTTPException(status_code=400, detail="Unknown question_id")
+            if not (0 <= answer.selected_option <= 3):
+                raise HTTPException(status_code=400, detail="selected_option out of range")
+
+        answer_by_question = {a.question_id: a.selected_option for a in body.answers}
+
+        results = []
+        score = 0
+        for row in question_rows:
+            question_id = str(row["id"])
+            selected_option = answer_by_question.get(question_id)
+            is_correct = selected_option is not None and selected_option == row["correct_answer"]
+            if is_correct:
+                score += 1
+            results.append(
+                {
+                    "question_id": question_id,
+                    "question": row["question"],
+                    "options": row["options"],
+                    "selected_option": selected_option,
+                    "correct_answer": row["correct_answer"],
+                    "is_correct": is_correct,
+                    "source_reference": row["source_reference"],
+                }
+            )
+
+        attempt_id = str(uuid.uuid4())
+        attempt_row = conn.execute(
+            """
+            INSERT INTO quiz_attempts (id, quiz_id, user_id, answers, score)
+            VALUES (%s, %s, %s, %s, %s)
+            RETURNING id, completed_at
+            """,
+            (
+                attempt_id,
+                quiz_id,
+                user_id,
+                Json([a.model_dump() for a in body.answers]),
+                score,
+            ),
+        ).fetchone()
+
+    return {
+        "id": str(attempt_row["id"]),
+        "quiz_id": quiz_id,
+        "score": score,
+        "total_questions": len(question_rows),
+        "completed_at": attempt_row["completed_at"].isoformat(),
+        "results": results,
+    }
+
+
+@router.get("/attempts")
+async def list_attempts(user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        attempt_rows = conn.execute(
+            """
+            SELECT
+                a.id,
+                a.quiz_id,
+                a.score,
+                a.completed_at,
+                q.document_ids,
+                (SELECT count(*) FROM quiz_questions qq WHERE qq.quiz_id = a.quiz_id) AS total_questions
+            FROM quiz_attempts a
+            JOIN quizzes q ON q.id = a.quiz_id
+            WHERE a.user_id = %s
+            ORDER BY a.completed_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+
+        all_document_ids = {str(d) for row in attempt_rows for d in row["document_ids"]}
+        filename_rows = conn.execute(
+            "SELECT id, filename FROM documents WHERE user_id = %s AND id = ANY(%s)",
+            (user_id, list(all_document_ids)),
+        ).fetchall()
+        filename_by_id = {str(r["id"]): r["filename"] for r in filename_rows}
+
+    return {
+        "attempts": [
+            {
+                "id": str(row["id"]),
+                "quiz_id": str(row["quiz_id"]),
+                "score": row["score"],
+                "total_questions": row["total_questions"],
+                "completed_at": row["completed_at"].isoformat(),
+                "document_filenames": [
+                    filename_by_id.get(str(d), "(deleted document)") for d in row["document_ids"]
+                ],
+            }
+            for row in attempt_rows
+        ]
+    }
