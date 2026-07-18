@@ -1,72 +1,69 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { CitationStub } from '../components/ui/CitationStub'
 import { Input } from '../components/ui/Input'
-import {
-  DocumentListItem,
-  Quiz,
-  QuizAttemptResult,
-  generateQuiz,
-  listDocuments,
-  submitQuizAttempt,
-} from '../lib/api'
+import { Quiz, generateQuiz, listDocuments, submitQuizAttempt } from '../lib/api'
+import { queryKeys } from '../lib/queryKeys'
 
 export function QuizPage() {
-  const [documents, setDocuments] = useState<DocumentListItem[]>([])
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [numQuestions, setNumQuestions] = useState(10)
   const [quiz, setQuiz] = useState<Quiz | null>(null)
   const [answers, setAnswers] = useState<Record<string, number>>({})
-  const [result, setResult] = useState<QuizAttemptResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(false)
+  const queryClient = useQueryClient()
 
-  useEffect(() => {
-    listDocuments().then(setDocuments)
-  }, [])
+  const documentsQuery = useQuery({ queryKey: queryKeys.documents, queryFn: listDocuments })
+  const documents = documentsQuery.data ?? []
+
+  const submitMutation = useMutation({
+    mutationFn: (vars: {
+      quizId: string
+      answers: { question_id: string; selected_option: number }[]
+    }) => submitQuizAttempt(vars.quizId, vars.answers),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.quizAttempts }),
+  })
+
+  const generateMutation = useMutation({
+    mutationFn: (vars: { documentIds: string[]; numQuestions: number }) =>
+      generateQuiz(vars.documentIds, vars.numQuestions),
+    onSuccess: (generated) => {
+      setQuiz(generated)
+      setAnswers({})
+      submitMutation.reset()
+    },
+  })
 
   function toggleDocument(id: string) {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  async function handleGenerate(event: FormEvent) {
+  function handleGenerate(event: FormEvent) {
     event.preventDefault()
     if (selectedIds.length === 0) return
-    setLoading(true)
-    setError(null)
-    try {
-      const generated = await generateQuiz(selectedIds, numQuestions)
-      setQuiz(generated)
-      setAnswers({})
-      setResult(null)
-    } catch {
-      setError('Failed to generate quiz, try again')
-    } finally {
-      setLoading(false)
-    }
+    generateMutation.mutate({ documentIds: selectedIds, numQuestions })
   }
 
-  async function handleSubmit(event: FormEvent) {
+  function handleSubmit(event: FormEvent) {
     event.preventDefault()
     if (!quiz) return
-    setLoading(true)
-    setError(null)
-    try {
-      const submittedAnswers = quiz.questions
-        .filter((q) => q.id in answers)
-        .map((q) => ({ question_id: q.id, selected_option: answers[q.id] }))
-      const scored = await submitQuizAttempt(quiz.id, submittedAnswers)
-      setResult(scored)
-    } catch {
-      setError('Failed to submit quiz, try again')
-    } finally {
-      setLoading(false)
-    }
+    const submittedAnswers = quiz.questions
+      .filter((q) => q.id in answers)
+      .map((q) => ({ question_id: q.id, selected_option: answers[q.id] }))
+    submitMutation.mutate({ quizId: quiz.id, answers: submittedAnswers })
   }
+
+  const result = submitMutation.data ?? null
+  const error = generateMutation.isError
+    ? 'Failed to generate quiz, try again'
+    : submitMutation.isError
+      ? 'Failed to submit quiz, try again'
+      : null
+  const loading = generateMutation.isPending || submitMutation.isPending
 
   return (
     <div className="space-y-8">
