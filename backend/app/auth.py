@@ -30,7 +30,10 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             algorithms=["HS256"],
             audience="authenticated",
         )
-        return payload["sub"]
+        sub = payload.get("sub")
+        if sub is not None:
+            return sub
+        logger.warning("JWT verified via legacy HS256 secret but missing 'sub' claim")
     except jwt.PyJWTError as hs256_error:
         # Expected to fail (and log) for every real Supabase-issued token if
         # the project doesn't sign with the legacy shared secret - only a
@@ -45,7 +48,11 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             algorithms=["ES256", "RS256"],
             audience="authenticated",
         )
-        return payload["sub"]
+        sub = payload.get("sub")
+        if sub is not None:
+            return sub
+        logger.warning("JWT verified via JWKS but missing 'sub' claim")
     except jwt.PyJWTError as jwks_error:
         logger.warning("JWT verification via JWKS fallback failed: %r", jwks_error)
-        raise HTTPException(status_code=401, detail="Invalid token")
+
+    raise HTTPException(status_code=401, detail="Invalid token")
