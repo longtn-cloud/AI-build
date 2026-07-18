@@ -1,4 +1,5 @@
-import { FormEvent, useEffect, useState } from 'react'
+import { FormEvent, useState } from 'react'
+import { useMutation, useQuery } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -7,45 +8,47 @@ import { Card } from '../components/ui/Card'
 import { CitationStub } from '../components/ui/CitationStub'
 import { Input } from '../components/ui/Input'
 import { ChatMessage, createChatSession, sendChatMessage } from '../lib/api'
+import { queryKeys } from '../lib/queryKeys'
 
 export function ChatPage() {
-  const [sessionId, setSessionId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [webSearch, setWebSearch] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [sending, setSending] = useState(false)
 
-  useEffect(() => {
-    createChatSession().then((session) => setSessionId(session.id))
-  }, [])
+  const sessionQuery = useQuery({
+    queryKey: queryKeys.chatSession,
+    queryFn: createChatSession,
+    staleTime: Infinity,
+  })
 
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!input.trim() || !sessionId) return
-    setSending(true)
-    setError(null)
-    try {
-      const { user_message, assistant_message } = await sendChatMessage(sessionId, input, webSearch)
+  const sendMutation = useMutation({
+    mutationFn: (vars: { sessionId: string; content: string; webSearch: boolean }) =>
+      sendChatMessage(vars.sessionId, vars.content, vars.webSearch),
+    onSuccess: ({ user_message, assistant_message }) => {
       setMessages((prev) => [...prev, user_message, assistant_message])
       setInput('')
-    } catch {
-      setError('Failed to send message, try again')
-    } finally {
-      setSending(false)
-    }
+    },
+  })
+
+  function handleSubmit(event: FormEvent) {
+    event.preventDefault()
+    const sessionId = sessionQuery.data?.id
+    if (!input.trim() || !sessionId) return
+    sendMutation.mutate({ sessionId, content: input, webSearch })
   }
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-2xl font-semibold text-parchment">Chat</h1>
-      {error && <Alert>{error}</Alert>}
+      {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
       <ul className="space-y-3">
         {messages.map((message) => (
           <li key={message.id}>
             <Card
               className={
-                message.role === 'user' ? 'ml-auto max-w-lg bg-[#F4E8D0] dark:bg-[#2A2318]' : 'max-w-lg'
+                message.role === 'user'
+                  ? 'ml-auto max-w-lg bg-[#F4E8D0] dark:bg-[#2A2318]'
+                  : 'max-w-lg'
               }
             >
               <p className="font-body text-ink dark:text-parchment">{message.content}</p>
@@ -90,7 +93,7 @@ export function ChatPage() {
             />
             Search the web for this message
           </label>
-          <Button type="submit" disabled={sending}>
+          <Button type="submit" disabled={sendMutation.isPending}>
             Send
           </Button>
         </div>

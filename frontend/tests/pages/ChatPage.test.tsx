@@ -1,6 +1,8 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
+
+import { renderWithQueryClient } from '../test-utils'
 
 vi.mock('../../src/lib/api', () => ({
   createChatSession: vi.fn(),
@@ -11,7 +13,7 @@ import { createChatSession, sendChatMessage } from '../../src/lib/api'
 import { ChatPage } from '../../src/pages/ChatPage'
 
 function renderChatPage() {
-  return render(
+  return renderWithQueryClient(
     <MemoryRouter>
       <ChatPage />
     </MemoryRouter>,
@@ -20,7 +22,11 @@ function renderChatPage() {
 
 describe('ChatPage', () => {
   it('creates a chat session on mount', async () => {
-    ;(createChatSession as any).mockResolvedValue({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
 
     renderChatPage()
 
@@ -30,7 +36,11 @@ describe('ChatPage', () => {
   })
 
   it('sends a message and renders the grounded reply with sources', async () => {
-    ;(createChatSession as any).mockResolvedValue({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
     ;(sendChatMessage as any).mockResolvedValue({
       user_message: {
         id: 'msg-1',
@@ -70,7 +80,11 @@ describe('ChatPage', () => {
   })
 
   it('renders a Web badge and no sources for a web-search-assisted reply', async () => {
-    ;(createChatSession as any).mockResolvedValue({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
     ;(sendChatMessage as any).mockResolvedValue({
       user_message: {
         id: 'msg-1',
@@ -107,7 +121,11 @@ describe('ChatPage', () => {
   })
 
   it('shows an error message when sending fails', async () => {
-    ;(createChatSession as any).mockResolvedValue({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
     ;(sendChatMessage as any).mockRejectedValue(new Error('Failed to send message'))
 
     renderChatPage()
@@ -122,7 +140,11 @@ describe('ChatPage', () => {
   })
 
   it('does not send on an empty message', async () => {
-    ;(createChatSession as any).mockResolvedValue({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
 
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
