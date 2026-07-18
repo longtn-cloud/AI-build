@@ -7,7 +7,7 @@ class Settings(BaseSettings):
     supabase_jwt_secret: str
     supabase_db_url: str
     voyage_api_key: str
-    anthropic_api_key: str
+    gemini_api_key: str
     storage_bucket: str = "documents"
     max_upload_bytes: int = 20 * 1024 * 1024
     allowed_file_types: set[str] = {"pdf", "docx", "txt", "md"}

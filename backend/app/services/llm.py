@@ -1,10 +1,11 @@
-import anthropic
+from google import genai
+from google.genai import types
 
 from app.config import settings
 
-_client = anthropic.Anthropic(api_key=settings.anthropic_api_key)
+_client = genai.Client(api_key=settings.gemini_api_key)
 
-MODEL = "claude-sonnet-5"
+MODEL = "gemini-2.5-flash"
 
 SYSTEM_PROMPT = (
     "You are a document assistant. Answer the user's question using ONLY the "
@@ -20,66 +21,61 @@ def answer_from_chunks(question: str, chunks: list[dict]) -> str:
         f"[Source: {c['filename']}, passage {c['chunk_index'] + 1} of {c['total_chunks']}]\n{c['content']}"
         for c in chunks
     )
-    message = _client.messages.create(
+    response = _client.models.generate_content(
         model=MODEL,
-        max_tokens=2048,
-        thinking={"type": "disabled"},
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Document passages:\n\n{context}\n\nQuestion: {question}",
-            }
-        ],
+        contents=f"Document passages:\n\n{context}\n\nQuestion: {question}",
+        config=types.GenerateContentConfig(
+            system_instruction=SYSTEM_PROMPT,
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+        ),
     )
-    return "".join(block.text for block in message.content if block.type == "text")
+    return response.text
 
 
 def answer_with_web_search(question: str) -> str:
-    message = _client.messages.create(
+    response = _client.models.generate_content(
         model=MODEL,
-        max_tokens=2048,
-        tools=[{"type": "web_search_20260209", "name": "web_search"}],
-        messages=[{"role": "user", "content": question}],
+        contents=question,
+        config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
     )
-    return "".join(block.text for block in message.content if block.type == "text")
+    return response.text
 
 
-QUIZ_TOOL = {
-    "name": "return_quiz_questions",
-    "description": "Return the generated multiple-choice quiz questions.",
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "questions": {
-                "type": "array",
-                "items": {
-                    "type": "object",
-                    "properties": {
-                        "question": {"type": "string"},
-                        "options": {
-                            "type": "array",
-                            "items": {"type": "string"},
-                            "minItems": 4,
-                            "maxItems": 4,
-                        },
-                        "correct_answer": {"type": "integer", "minimum": 0, "maximum": 3},
-                        "source_document_id": {"type": "string"},
-                        "source_chunk_index": {"type": "integer"},
+QUIZ_TOOL = types.FunctionDeclaration(
+    name="return_quiz_questions",
+    description="Return the generated multiple-choice quiz questions.",
+    parameters=types.Schema(
+        type="OBJECT",
+        properties={
+            "questions": types.Schema(
+                type="ARRAY",
+                items=types.Schema(
+                    type="OBJECT",
+                    properties={
+                        "question": types.Schema(type="STRING"),
+                        "options": types.Schema(
+                            type="ARRAY",
+                            items=types.Schema(type="STRING"),
+                            min_items=4,
+                            max_items=4,
+                        ),
+                        "correct_answer": types.Schema(type="INTEGER", minimum=0, maximum=3),
+                        "source_document_id": types.Schema(type="STRING"),
+                        "source_chunk_index": types.Schema(type="INTEGER"),
                     },
-                    "required": [
+                    required=[
                         "question",
                         "options",
                         "correct_answer",
                         "source_document_id",
                         "source_chunk_index",
                     ],
-                },
-            }
+                ),
+            )
         },
-        "required": ["questions"],
-    },
-}
+        required=["questions"],
+    ),
+)
 
 
 def _quiz_system_prompt(num_questions: int) -> str:
@@ -102,21 +98,22 @@ def generate_quiz_questions(chunks: list[dict], num_questions: int) -> list[dict
         f"passage {c['chunk_index'] + 1} of {c['total_chunks']}]\n{c['content']}"
         for c in chunks
     )
-    message = _client.messages.create(
+    response = _client.models.generate_content(
         model=MODEL,
-        max_tokens=8192,
-        thinking={"type": "disabled"},
-        system=_quiz_system_prompt(num_questions),
-        tools=[QUIZ_TOOL],
-        tool_choice={"type": "tool", "name": "return_quiz_questions"},
-        messages=[
-            {
-                "role": "user",
-                "content": f"Document passages:\n\n{context}",
-            }
-        ],
+        contents=f"Document passages:\n\n{context}",
+        config=types.GenerateContentConfig(
+            system_instruction=_quiz_system_prompt(num_questions),
+            thinking_config=types.ThinkingConfig(thinking_budget=0),
+            tools=[types.Tool(function_declarations=[QUIZ_TOOL])],
+            tool_config=types.ToolConfig(
+                function_calling_config=types.FunctionCallingConfig(
+                    mode="ANY",
+                    allowed_function_names=["return_quiz_questions"],
+                )
+            ),
+        ),
     )
-    for block in message.content:
-        if block.type == "tool_use" and block.name == "return_quiz_questions":
-            return block.input["questions"]
+    for call in response.function_calls or []:
+        if call.name == "return_quiz_questions":
+            return call.args["questions"]
     return []

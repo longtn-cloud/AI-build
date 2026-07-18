@@ -10,9 +10,9 @@ Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/p
 - **Backend:** FastAPI + psycopg3, pytest
 - **Database / Auth / Storage:** Supabase (Postgres + `pgvector`, Auth, object storage)
 - **Embeddings:** Voyage AI (`voyage-3-lite`, 512-dim vectors)
-- **LLM:** Claude API (`claude-sonnet-5`) — chat Q&A and quiz generation
+- **LLM:** Gemini API (`gemini-2.5-flash`) — chat Q&A and quiz generation
 
-Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Voyage AI / Claude APIs.
+Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Voyage AI / Gemini APIs.
 
 ## Prerequisites
 
@@ -20,7 +20,7 @@ Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and �
 - Node 20+
 - Docker (for the local test database)
 - A Supabase project (free tier is enough) with the `pgvector` extension available
-- API keys: Voyage AI, Anthropic (Claude)
+- API keys: Voyage AI, Google AI Studio (Gemini)
 
 ## Configuration
 
@@ -38,7 +38,7 @@ cp .env.example .env
 | `SUPABASE_JWT_SECRET` | Used to verify user auth tokens on incoming requests |
 | `SUPABASE_DB_URL` | Direct Postgres connection string for the same project |
 | `VOYAGE_API_KEY` | Voyage AI API key (embeddings) |
-| `ANTHROPIC_API_KEY` | Claude API key (chat + quiz generation) |
+| `GEMINI_API_KEY` | Gemini API key (chat + quiz generation) |
 | `STORAGE_BUCKET` | Supabase Storage bucket name for uploaded files (default `documents`) |
 
 The frontend talks to Supabase Auth directly and to the FastAPI backend. Copy its env template too:
@@ -120,7 +120,7 @@ This project follows strict TDD (see `docs/superpowers/plans/`): for any change,
 backend/
   app/
     routers/       # documents, search, chat, quiz — one file per feature
-    services/       # embeddings.py (Voyage), llm.py (Claude), extraction/chunking/processing/storage
+    services/       # embeddings.py (Voyage), llm.py (Gemini), extraction/chunking/processing/storage
     auth.py         # Supabase JWT verification -> get_current_user_id dependency
     db.py           # get_conn() -> psycopg connection
     config.py       # Settings (env vars)

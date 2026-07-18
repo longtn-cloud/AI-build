@@ -3,16 +3,9 @@ from unittest.mock import MagicMock
 from app.services import llm
 
 
-def _text_block(text):
-    block = MagicMock()
-    block.type = "text"
-    block.text = text
-    return block
-
-
-def test_answer_from_chunks_calls_claude_with_context_and_disabled_thinking(monkeypatch):
+def test_answer_from_chunks_calls_gemini_with_context_and_disabled_thinking(monkeypatch):
     fake_client = MagicMock()
-    fake_client.messages.create.return_value = MagicMock(content=[_text_block("Refunds are available within 30 days.")])
+    fake_client.models.generate_content.return_value = MagicMock(text="Refunds are available within 30 days.")
     monkeypatch.setattr(llm, "_client", fake_client)
 
     chunks = [
@@ -29,47 +22,49 @@ def test_answer_from_chunks_calls_claude_with_context_and_disabled_thinking(monk
     result = llm.answer_from_chunks("What is the refund window?", chunks)
 
     assert result == "Refunds are available within 30 days."
-    _, kwargs = fake_client.messages.create.call_args
-    assert kwargs["model"] == "claude-sonnet-5"
-    assert kwargs["thinking"] == {"type": "disabled"}
-    assert "policy.pdf" in kwargs["messages"][0]["content"]
-    assert "passage 2 of 3" in kwargs["messages"][0]["content"]
-    assert "Refunds must be requested within 30 days" in kwargs["messages"][0]["content"]
-    assert "What is the refund window?" in kwargs["messages"][0]["content"]
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert kwargs["model"] == llm.MODEL
+    assert kwargs["config"].thinking_config.thinking_budget == 0
+    assert kwargs["config"].system_instruction == llm.SYSTEM_PROMPT
+    assert "policy.pdf" in kwargs["contents"]
+    assert "passage 2 of 3" in kwargs["contents"]
+    assert "Refunds must be requested within 30 days" in kwargs["contents"]
+    assert "What is the refund window?" in kwargs["contents"]
 
 
-def test_answer_from_chunks_joins_multiple_text_blocks(monkeypatch):
+def test_answer_from_chunks_returns_response_text(monkeypatch):
     fake_client = MagicMock()
-    fake_client.messages.create.return_value = MagicMock(
-        content=[_text_block("Part one. "), _text_block("Part two.")]
-    )
+    fake_client.models.generate_content.return_value = MagicMock(text="Part one. Part two.")
     monkeypatch.setattr(llm, "_client", fake_client)
 
-    result = llm.answer_from_chunks("q", [{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c", "score": 0.9}])
+    result = llm.answer_from_chunks(
+        "q", [{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c", "score": 0.9}]
+    )
 
     assert result == "Part one. Part two."
 
 
-def test_answer_with_web_search_calls_claude_with_web_search_tool(monkeypatch):
+def test_answer_with_web_search_calls_gemini_with_search_tool(monkeypatch):
     fake_client = MagicMock()
-    fake_client.messages.create.return_value = MagicMock(content=[_text_block("It's sunny today.")])
+    fake_client.models.generate_content.return_value = MagicMock(text="It's sunny today.")
     monkeypatch.setattr(llm, "_client", fake_client)
 
     result = llm.answer_with_web_search("What's the weather?")
 
     assert result == "It's sunny today."
-    _, kwargs = fake_client.messages.create.call_args
-    assert kwargs["model"] == "claude-sonnet-5"
-    assert kwargs["tools"] == [{"type": "web_search_20260209", "name": "web_search"}]
-    assert kwargs["messages"] == [{"role": "user", "content": "What's the weather?"}]
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert kwargs["model"] == llm.MODEL
+    assert kwargs["contents"] == "What's the weather?"
+    tools = kwargs["config"].tools
+    assert len(tools) == 1
+    assert tools[0].google_search is not None
 
 
-def test_generate_quiz_questions_calls_claude_with_forced_tool_and_context(monkeypatch):
+def test_generate_quiz_questions_calls_gemini_with_forced_tool_and_context(monkeypatch):
     fake_client = MagicMock()
-    tool_use_block = MagicMock()
-    tool_use_block.type = "tool_use"
-    tool_use_block.name = "return_quiz_questions"
-    tool_use_block.input = {
+    fake_call = MagicMock()
+    fake_call.name = "return_quiz_questions"
+    fake_call.args = {
         "questions": [
             {
                 "question": "What is the refund window?",
@@ -80,7 +75,7 @@ def test_generate_quiz_questions_calls_claude_with_forced_tool_and_context(monke
             }
         ]
     }
-    fake_client.messages.create.return_value = MagicMock(content=[tool_use_block])
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
     monkeypatch.setattr(llm, "_client", fake_client)
 
     chunks = [
@@ -104,23 +99,22 @@ def test_generate_quiz_questions_calls_claude_with_forced_tool_and_context(monke
             "source_chunk_index": 1,
         }
     ]
-    _, kwargs = fake_client.messages.create.call_args
-    assert kwargs["model"] == "claude-sonnet-5"
-    assert kwargs["thinking"] == {"type": "disabled"}
-    assert kwargs["tools"] == [llm.QUIZ_TOOL]
-    assert kwargs["tool_choice"] == {"type": "tool", "name": "return_quiz_questions"}
-    assert "policy.pdf" in kwargs["messages"][0]["content"]
-    assert "passage 2 of 3" in kwargs["messages"][0]["content"]
-    assert "doc-1" in kwargs["messages"][0]["content"]
-    assert "10" in kwargs["system"]
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert kwargs["model"] == llm.MODEL
+    assert kwargs["config"].thinking_config.thinking_budget == 0
+    assert kwargs["config"].tools[0].function_declarations == [llm.QUIZ_TOOL]
+    tool_config = kwargs["config"].tool_config
+    assert tool_config.function_calling_config.mode == "ANY"
+    assert tool_config.function_calling_config.allowed_function_names == ["return_quiz_questions"]
+    assert "policy.pdf" in kwargs["contents"]
+    assert "passage 2 of 3" in kwargs["contents"]
+    assert "doc-1" in kwargs["contents"]
+    assert "10" in kwargs["config"].system_instruction
 
 
-def test_generate_quiz_questions_returns_empty_list_when_no_tool_use_block(monkeypatch):
+def test_generate_quiz_questions_returns_empty_list_when_no_function_call(monkeypatch):
     fake_client = MagicMock()
-    text_block = MagicMock()
-    text_block.type = "text"
-    text_block.text = "I couldn't generate any questions."
-    fake_client.messages.create.return_value = MagicMock(content=[text_block])
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=None)
     monkeypatch.setattr(llm, "_client", fake_client)
 
     result = llm.generate_quiz_questions([{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c"}], 5)

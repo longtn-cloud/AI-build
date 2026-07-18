@@ -9,7 +9,7 @@ os.environ.setdefault(
 os.environ.setdefault("SUPABASE_JWT_SECRET", "test-jwt-secret")
 os.environ.setdefault("SUPABASE_DB_URL", "postgresql://postgres:postgres@localhost:5433/test")
 os.environ.setdefault("VOYAGE_API_KEY", "test-voyage-key")
-os.environ.setdefault("ANTHROPIC_API_KEY", "test-anthropic-key")
+os.environ.setdefault("GEMINI_API_KEY", "test-gemini-key")
 
 import psycopg
 import pytest
