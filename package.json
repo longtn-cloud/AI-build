@@ -1,0 +1,10 @@
+{
+  "name": "document-knowledge-assistant",
+  "private": true,
+  "scripts": {
+    "dev": "concurrently -n backend,frontend -c blue,green \"node scripts/dev-backend.js\" \"npm run dev --prefix frontend\""
+  },
+  "devDependencies": {
+    "concurrently": "^9.0.0"
+  }
+}

@@ -66,6 +66,15 @@ Run them via the Supabase SQL editor or `psql "$SUPABASE_DB_URL" -f backend/migr
 
 ## Running locally
 
+Once the one-time setup above is done, start both servers together from the repo root:
+
+```bash
+npm install   # one-time: installs concurrently
+npm run dev
+```
+
+This runs the backend (`uvicorn --reload`) and frontend (`vite`) together in one terminal, labeled and color-coded, and stops both on Ctrl+C. Or run them separately in two terminals:
+
 Backend:
 
 ```bash
