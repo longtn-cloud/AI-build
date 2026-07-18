@@ -8,6 +8,15 @@ async function authHeader(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {}
 }
 
+// The backend is the source of truth for token validity: a locally cached Supabase
+// session can be stale (expired/revoked) even while it still looks present client-side.
+// Signing out on 401 clears that stale session so ProtectedRoute redirects to /login.
+async function apiFetch(input: string, init?: RequestInit): Promise<Response> {
+  const res = await fetch(input, init)
+  if (res.status === 401) await supabase.auth.signOut()
+  return res
+}
+
 export type DocumentStatus = 'uploading' | 'processing' | 'ready' | 'failed'
 
 export type Document = {
@@ -27,7 +36,7 @@ export type Document = {
 export type DocumentListItem = Omit<Document, 'extracted_text' | 'storage_path'>
 
 export async function listDocuments(): Promise<DocumentListItem[]> {
-  const res = await fetch(`${API_BASE}/documents`, { headers: await authHeader() })
+  const res = await apiFetch(`${API_BASE}/documents`, { headers: await authHeader() })
   if (!res.ok) throw new Error('Failed to list documents')
   return res.json()
 }
@@ -35,7 +44,7 @@ export async function listDocuments(): Promise<DocumentListItem[]> {
 export async function uploadDocument(file: File): Promise<Document> {
   const formData = new FormData()
   formData.append('file', file)
-  const res = await fetch(`${API_BASE}/documents`, {
+  const res = await apiFetch(`${API_BASE}/documents`, {
     method: 'POST',
     headers: await authHeader(),
     body: formData,
@@ -45,7 +54,7 @@ export async function uploadDocument(file: File): Promise<Document> {
 }
 
 export async function renameDocument(id: string, filename: string): Promise<Document> {
-  const res = await fetch(`${API_BASE}/documents/${id}`, {
+  const res = await apiFetch(`${API_BASE}/documents/${id}`, {
     method: 'PATCH',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
     body: JSON.stringify({ filename }),
@@ -55,7 +64,7 @@ export async function renameDocument(id: string, filename: string): Promise<Docu
 }
 
 export async function deleteDocument(id: string): Promise<void> {
-  const res = await fetch(`${API_BASE}/documents/${id}`, {
+  const res = await apiFetch(`${API_BASE}/documents/${id}`, {
     method: 'DELETE',
     headers: await authHeader(),
   })
@@ -63,14 +72,14 @@ export async function deleteDocument(id: string): Promise<void> {
 }
 
 export async function getDownloadUrl(id: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/documents/${id}/download`, { headers: await authHeader() })
+  const res = await apiFetch(`${API_BASE}/documents/${id}/download`, { headers: await authHeader() })
   if (!res.ok) throw new Error('Failed to get download URL')
   const data = await res.json()
   return data.url
 }
 
 export async function getPreviewText(id: string): Promise<string> {
-  const res = await fetch(`${API_BASE}/documents/${id}/preview`, { headers: await authHeader() })
+  const res = await apiFetch(`${API_BASE}/documents/${id}/preview`, { headers: await authHeader() })
   if (!res.ok) throw new Error('Failed to get preview')
   const data = await res.json()
   return data.text
@@ -86,7 +95,7 @@ export type SearchResult = {
 }
 
 export async function search(query: string): Promise<SearchResult[]> {
-  const res = await fetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
+  const res = await apiFetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
     headers: await authHeader(),
   })
   if (!res.ok) throw new Error('Search failed')
@@ -118,7 +127,7 @@ export type ChatMessage = {
 }
 
 export async function createChatSession(): Promise<ChatSession> {
-  const res = await fetch(`${API_BASE}/chat/sessions`, {
+  const res = await apiFetch(`${API_BASE}/chat/sessions`, {
     method: 'POST',
     headers: await authHeader(),
   })
@@ -131,7 +140,7 @@ export async function sendChatMessage(
   content: string,
   webSearch: boolean,
 ): Promise<{ user_message: ChatMessage; assistant_message: ChatMessage }> {
-  const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}/messages`, {
+  const res = await apiFetch(`${API_BASE}/chat/sessions/${sessionId}/messages`, {
     method: 'POST',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
     body: JSON.stringify({ content, web_search: webSearch }),
@@ -152,7 +161,7 @@ export type Quiz = {
 }
 
 export async function generateQuiz(documentIds: string[], numQuestions: number): Promise<Quiz> {
-  const res = await fetch(`${API_BASE}/quiz/generate`, {
+  const res = await apiFetch(`${API_BASE}/quiz/generate`, {
     method: 'POST',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
     body: JSON.stringify({ document_ids: documentIds, num_questions: numQuestions }),
@@ -183,7 +192,7 @@ export type QuizAttemptResult = {
 }
 
 export async function submitQuizAttempt(quizId: string, answers: QuizAnswer[]): Promise<QuizAttemptResult> {
-  const res = await fetch(`${API_BASE}/quiz/${quizId}/attempts`, {
+  const res = await apiFetch(`${API_BASE}/quiz/${quizId}/attempts`, {
     method: 'POST',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
     body: JSON.stringify({ answers }),
@@ -202,7 +211,7 @@ export type QuizAttemptSummary = {
 }
 
 export async function listQuizAttempts(): Promise<QuizAttemptSummary[]> {
-  const res = await fetch(`${API_BASE}/quiz/attempts`, {
+  const res = await apiFetch(`${API_BASE}/quiz/attempts`, {
     headers: await authHeader(),
   })
   if (!res.ok) throw new Error('Failed to load quiz history')

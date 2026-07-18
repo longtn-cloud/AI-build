@@ -4,6 +4,7 @@ vi.mock('../../src/lib/supabaseClient', () => ({
   supabase: {
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: { access_token: 'test-token' } } }),
+      signOut: vi.fn().mockResolvedValue({ error: null }),
     },
   },
 }))
@@ -22,6 +23,7 @@ import {
   submitQuizAttempt,
   uploadDocument,
 } from '../../src/lib/api'
+import { supabase } from '../../src/lib/supabaseClient'
 
 const originalFetch = globalThis.fetch
 
@@ -301,5 +303,13 @@ describe('api client', () => {
       expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
     )
     expect(result).toEqual(attempts)
+  })
+
+  it('signs out a stale session when the API rejects the request with 401', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: false, status: 401 })
+
+    await expect(listQuizAttempts()).rejects.toThrow('Failed to load quiz history')
+
+    expect(supabase.auth.signOut).toHaveBeenCalled()
   })
 })
