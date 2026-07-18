@@ -9,4 +9,12 @@ describe('Card', () => {
 
     expect(screen.getByText('Hello')).toBeInTheDocument()
   })
+
+  it('lets a caller-supplied className override a conflicting base utility', () => {
+    render(<Card className="bg-red-500">Hi</Card>)
+    const el = screen.getByText('Hi')
+
+    expect(el.className).toContain('bg-red-500')
+    expect(el.className).not.toContain('bg-white')
+  })
 })

@@ -17,4 +17,12 @@ describe('Input', () => {
 
     expect(onChange).toHaveBeenCalledTimes(1)
   })
+
+  it('lets a caller-supplied className override a conflicting base utility', () => {
+    render(<Input aria-label="Amount" className="w-24" />)
+    const el = screen.getByLabelText('Amount')
+
+    expect(el.className).toContain('w-24')
+    expect(el.className).not.toContain('w-full')
+  })
 })
