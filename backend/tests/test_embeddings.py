@@ -3,23 +3,34 @@ from unittest.mock import MagicMock
 from app.services import embeddings
 
 
-def test_embed_texts_encodes_with_model(monkeypatch):
-    fake_model = MagicMock()
-    fake_model.encode.return_value = MagicMock(tolist=lambda: [[0.1, 0.2], [0.3, 0.4]])
-    monkeypatch.setattr(embeddings, "_model", fake_model)
+def _fake_response(vectors):
+    return MagicMock(embeddings=[MagicMock(values=v) for v in vectors])
+
+
+def test_embed_texts_calls_embed_content_for_documents(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.embed_content.return_value = _fake_response([[0.1, 0.2], [0.3, 0.4]])
+    monkeypatch.setattr(embeddings, "_client", fake_client)
 
     result = embeddings.embed_texts(["chunk one", "chunk two"])
 
     assert result == [[0.1, 0.2], [0.3, 0.4]]
-    fake_model.encode.assert_called_once_with(["chunk one", "chunk two"])
+    _, kwargs = fake_client.models.embed_content.call_args
+    assert kwargs["model"] == embeddings.MODEL
+    assert kwargs["contents"] == ["chunk one", "chunk two"]
+    assert kwargs["config"].task_type == "RETRIEVAL_DOCUMENT"
+    assert kwargs["config"].output_dimensionality == embeddings.OUTPUT_DIMENSIONALITY
 
 
-def test_embed_query_encodes_single_text(monkeypatch):
-    fake_model = MagicMock()
-    fake_model.encode.return_value = MagicMock(tolist=lambda: [[0.5, 0.6]])
-    monkeypatch.setattr(embeddings, "_model", fake_model)
+def test_embed_query_calls_embed_content_for_query(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.embed_content.return_value = _fake_response([[0.5, 0.6]])
+    monkeypatch.setattr(embeddings, "_client", fake_client)
 
     result = embeddings.embed_query("what is the refund policy?")
 
     assert result == [0.5, 0.6]
-    fake_model.encode.assert_called_once_with(["what is the refund policy?"])
+    _, kwargs = fake_client.models.embed_content.call_args
+    assert kwargs["contents"] == ["what is the refund policy?"]
+    assert kwargs["config"].task_type == "RETRIEVAL_QUERY"
+    assert kwargs["config"].output_dimensionality == embeddings.OUTPUT_DIMENSIONALITY
