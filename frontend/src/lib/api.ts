@@ -93,3 +93,49 @@ export async function search(query: string): Promise<SearchResult[]> {
   const data = await res.json()
   return data.results
 }
+
+export type ChatSession = {
+  id: string
+  title: string
+  created_at: string
+}
+
+export type ChatCitation = {
+  document_id: string
+  filename: string
+  chunk_index: number
+  total_chunks: number
+  score: number
+}
+
+export type ChatMessage = {
+  id: string
+  role: 'user' | 'assistant'
+  content: string
+  citations: ChatCitation[]
+  used_web_search: boolean
+  created_at: string
+}
+
+export async function createChatSession(): Promise<ChatSession> {
+  const res = await fetch(`${API_BASE}/chat/sessions`, {
+    method: 'POST',
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to create chat session')
+  return res.json()
+}
+
+export async function sendChatMessage(
+  sessionId: string,
+  content: string,
+  webSearch: boolean,
+): Promise<{ user_message: ChatMessage; assistant_message: ChatMessage }> {
+  const res = await fetch(`${API_BASE}/chat/sessions/${sessionId}/messages`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ content, web_search: webSearch }),
+  })
+  if (!res.ok) throw new Error('Failed to send message')
+  return res.json()
+}

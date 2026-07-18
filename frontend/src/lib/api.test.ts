@@ -9,12 +9,14 @@ vi.mock('./supabaseClient', () => ({
 }))
 
 import {
+  createChatSession,
   deleteDocument,
   getDownloadUrl,
   getPreviewText,
   listDocuments,
   renameDocument,
   search,
+  sendChatMessage,
   uploadDocument,
 } from './api'
 
@@ -148,5 +150,66 @@ describe('api client', () => {
         score: 0.9,
       },
     ])
+  })
+
+  it('createChatSession sends an authorized POST request and returns the session', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' }),
+    })
+
+    const session = await createChatSession()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/chat/sessions'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token' },
+      }),
+    )
+    expect(session).toEqual({ id: 'session-1', title: 'New Chat', created_at: '2026-07-18T00:00:00Z' })
+  })
+
+  it('sendChatMessage sends content and web_search in the request body', async () => {
+    const userMessage = {
+      id: 'msg-1',
+      role: 'user',
+      content: 'What is the refund window?',
+      citations: [],
+      used_web_search: false,
+      created_at: '2026-07-18T00:00:01Z',
+    }
+    const assistantMessage = {
+      id: 'msg-2',
+      role: 'assistant',
+      content: 'Refunds are available within 30 days.',
+      citations: [
+        { document_id: 'doc-1', filename: 'policy.pdf', chunk_index: 1, total_chunks: 3, score: 0.81 },
+      ],
+      used_web_search: false,
+      created_at: '2026-07-18T00:00:02Z',
+    }
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ user_message: userMessage, assistant_message: assistantMessage }),
+    })
+
+    const result = await sendChatMessage('session-1', 'What is the refund window?', false)
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/chat/sessions/session-1/messages'),
+      expect.objectContaining({
+        method: 'POST',
+        headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
+        body: JSON.stringify({ content: 'What is the refund window?', web_search: false }),
+      }),
+    )
+    expect(result).toEqual({ user_message: userMessage, assistant_message: assistantMessage })
+  })
+
+  it('sendChatMessage fails when the request is not ok', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
+
+    await expect(sendChatMessage('session-1', 'hello', false)).rejects.toThrow('Failed to send message')
   })
 })
