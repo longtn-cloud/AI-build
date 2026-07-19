@@ -67,7 +67,9 @@ def test_send_message_grounds_answer_in_relevant_chunk(monkeypatch):
     from app.routers import chat as chat_router
 
     monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
-    answer_mock = MagicMock(return_value="Refunds are available within 30 days.")
+    answer_mock = MagicMock(
+        return_value={"answer": "Refunds are available within 30 days.", "used_general_knowledge": False}
+    )
     monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
 
     user_id, headers = _create_user()
@@ -87,6 +89,7 @@ def test_send_message_grounds_answer_in_relevant_chunk(monkeypatch):
     assert body["assistant_message"]["role"] == "assistant"
     assert body["assistant_message"]["content"] == "Refunds are available within 30 days."
     assert body["assistant_message"]["used_web_search"] is False
+    assert body["assistant_message"]["used_general_knowledge"] is False
     assert body["assistant_message"]["citations"] == [
         {
             "document_id": document_id,
@@ -100,13 +103,16 @@ def test_send_message_grounds_answer_in_relevant_chunk(monkeypatch):
     call_args = answer_mock.call_args[0]
     assert call_args[0] == "What is the refund window?"
     assert call_args[1][0]["filename"] == "policy.txt"
+    assert call_args[2] == []
 
 
-def test_send_message_returns_not_found_message_when_nothing_clears_threshold(monkeypatch):
+def test_send_message_answers_from_general_knowledge_when_nothing_clears_threshold(monkeypatch):
     from app.routers import chat as chat_router
 
     monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
-    answer_mock = MagicMock()
+    answer_mock = MagicMock(
+        return_value={"answer": "Paris is the capital of France.", "used_general_knowledge": True}
+    )
     monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
 
     user_id, headers = _create_user()
@@ -115,18 +121,17 @@ def test_send_message_returns_not_found_message_when_nothing_clears_threshold(mo
 
     response = client.post(
         f"/chat/sessions/{session_id}/messages",
-        json={"content": "What is the refund window?"},
+        json={"content": "What is the capital of France?"},
         headers=headers,
     )
 
     assert response.status_code == 201
     body = response.json()
-    assert body["assistant_message"]["content"] == (
-        "I couldn't find relevant information in your uploaded documents to answer that question."
-    )
+    assert body["assistant_message"]["content"] == "Paris is the capital of France."
     assert body["assistant_message"]["citations"] == []
     assert body["assistant_message"]["used_web_search"] is False
-    answer_mock.assert_not_called()
+    assert body["assistant_message"]["used_general_knowledge"] is True
+    answer_mock.assert_called_once_with("What is the capital of France?", [], [])
 
 
 def test_send_message_with_web_search_skips_retrieval(monkeypatch):
@@ -150,9 +155,10 @@ def test_send_message_with_web_search_skips_retrieval(monkeypatch):
     body = response.json()
     assert body["assistant_message"]["content"] == "It's sunny in Paris today."
     assert body["assistant_message"]["used_web_search"] is True
+    assert body["assistant_message"]["used_general_knowledge"] is False
     assert body["assistant_message"]["citations"] == []
     embed_mock.assert_not_called()
-    web_search_mock.assert_called_once_with("What's the weather in Paris?")
+    web_search_mock.assert_called_once_with("What's the weather in Paris?", [])
 
 
 def test_send_message_rejects_empty_content():
@@ -218,7 +224,7 @@ def test_send_message_excludes_other_users_chunks(monkeypatch):
     from app.routers import chat as chat_router
 
     monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
-    answer_mock = MagicMock(return_value="answer")
+    answer_mock = MagicMock(return_value={"answer": "answer", "used_general_knowledge": True})
     monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
 
     user_id, headers = _create_user()
@@ -234,10 +240,43 @@ def test_send_message_excludes_other_users_chunks(monkeypatch):
     )
 
     assert response.status_code == 201
-    assert response.json()["assistant_message"]["content"] == (
-        "I couldn't find relevant information in your uploaded documents to answer that question."
+    assert response.json()["assistant_message"]["content"] == "answer"
+    answer_mock.assert_called_once_with("hello", [], [])
+
+
+def test_send_message_includes_prior_turns_as_history(monkeypatch):
+    from app.routers import chat as chat_router
+
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    answer_mock = MagicMock(
+        side_effect=[
+            {"answer": "A phone and a laptop.", "used_general_knowledge": False},
+            {"answer": "The laptop is the second one.", "used_general_knowledge": False},
+        ]
     )
-    answer_mock.assert_not_called()
+    monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
+
+    user_id, headers = _create_user()
+    _create_document_with_chunks(user_id, "catalog.txt", [RELEVANT_VEC])
+    session_id = _create_session(headers)
+
+    client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What products do you have?"},
+        headers=headers,
+    )
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What about the second one?"},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    second_call_history = answer_mock.call_args_list[1][0][2]
+    assert second_call_history == [
+        {"role": "user", "content": "What products do you have?"},
+        {"role": "assistant", "content": "A phone and a laptop."},
+    ]
 
 
 def test_chat_messages_used_general_knowledge_defaults_to_false():
