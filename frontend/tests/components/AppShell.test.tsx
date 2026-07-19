@@ -1,29 +1,41 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
-vi.mock('../../src/lib/api', () => ({
-  listDocuments: vi.fn().mockResolvedValue([]),
-}))
-
-vi.mock('../../src/contexts/AuthContext', () => ({
-  useAuth: () => ({ session: { user: { email: 'sarah@example.com' } }, signOut: vi.fn() }),
+vi.mock('../../src/components/AppNav', () => ({
+  AppNav: () => <nav data-testid="app-nav" />,
 }))
 
 import { AppShell } from '../../src/components/AppShell'
-import { renderWithQueryClient } from '../test-utils'
+import i18n from '../../src/i18n'
 
 describe('AppShell', () => {
-  it('renders the nav and its children', () => {
-    renderWithQueryClient(
-      <MemoryRouter>
+  afterEach(() => {
+    i18n.changeLanguage('vi')
+  })
+
+  it('renders the Vietnamese title and subtitle for a known route', () => {
+    render(
+      <MemoryRouter initialEntries={['/documents']}>
         <AppShell>
-          <p>Page content</p>
+          <div>content</div>
         </AppShell>
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('link', { name: 'Documents' })).toBeInTheDocument()
-    expect(screen.getByText('Page content')).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Tài liệu' })).toBeInTheDocument()
+    expect(screen.getByText('Cơ sở kiến thức đã lập chỉ mục của bạn')).toBeInTheDocument()
+  })
+
+  it('falls back to the app name for an unknown route', () => {
+    render(
+      <MemoryRouter initialEntries={['/unknown']}>
+        <AppShell>
+          <div>content</div>
+        </AppShell>
+      </MemoryRouter>,
+    )
+
+    expect(screen.getByRole('heading', { name: 'DigiAgent' })).toBeInTheDocument()
   })
 })
