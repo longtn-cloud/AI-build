@@ -11,10 +11,14 @@ import {
   deleteDocument,
   getDownloadUrl,
   listDocuments,
+  listSharedDocuments,
   renameDocument,
+  shareDocument,
+  unshareDocument,
   uploadDocument,
 } from '../lib/api'
 import { PreviewModal } from '../components/PreviewModal'
+import { ShareTeamsModal } from '../components/ShareTeamsModal'
 import { queryKeys } from '../lib/queryKeys'
 
 const STATUS_VARIANT = {
@@ -44,6 +48,8 @@ export function DocumentsPage() {
   const [previewing, setPreviewing] = useState<DocumentListItem | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
+  const [view, setView] = useState<'mine' | 'shared'>('mine')
+  const [sharingDoc, setSharingDoc] = useState<DocumentListItem | null>(null)
   const queryClient = useQueryClient()
 
   const documentsQuery = useQuery({
@@ -59,6 +65,13 @@ export function DocumentsPage() {
     () => documents.filter((d) => matchesFilter(d.file_type, filter)),
     [documents, filter],
   )
+
+  const sharedDocumentsQuery = useQuery({
+    queryKey: queryKeys.sharedDocuments,
+    queryFn: listSharedDocuments,
+    enabled: view === 'shared',
+  })
+  const sharedDocuments = sharedDocumentsQuery.data ?? []
 
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadDocument(file),
@@ -77,6 +90,16 @@ export function DocumentsPage() {
     mutationFn: (id: string) => deleteDocument(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
     onError: () => setError(t('errors.delete')),
+  })
+
+  const shareMutation = useMutation({
+    mutationFn: ({ id, teamId }: { id: string; teamId: string }) => shareDocument(id, teamId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
+  })
+
+  const unshareMutation = useMutation({
+    mutationFn: ({ id, teamId }: { id: string; teamId: string }) => unshareDocument(id, teamId),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
   })
 
   function handleUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -133,109 +156,167 @@ export function DocumentsPage() {
         </div>
       )}
 
-      <div
-        onDragOver={handleDragOver}
-        onDragLeave={handleDragLeave}
-        onDrop={handleDrop}
-        className={
-          isDraggingOver
-            ? 'mb-6 rounded-[14px] border-2 border-accent bg-accent/5 p-4'
-            : 'mb-6 rounded-[14px] border-2 border-dashed border-line p-4'
-        }
-      >
-        <label
-          htmlFor="upload-input"
-          className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted"
+      <div className="mb-5 flex w-fit gap-1 rounded-[10px] border border-line bg-white p-1">
+        <button
+          onClick={() => setView('mine')}
+          className={
+            view === 'mine'
+              ? 'rounded-md bg-sidebar px-3.5 py-1.5 text-sm font-semibold text-white'
+              : 'rounded-md px-3.5 py-1.5 text-sm font-semibold text-muted'
+          }
         >
-          {t('uploadLabel')}
-        </label>
-        <p className="mb-2 text-sm text-muted">{t('dragHint')}</p>
-        <input
-          id="upload-input"
-          type="file"
-          onChange={handleUpload}
-          className="block font-sans text-sm text-ink file:mr-4 file:rounded-[10px] file:border file:border-line file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-accent-hover hover:file:bg-app-bg"
-        />
+          {t('tabs.mine')}
+        </button>
+        <button
+          onClick={() => setView('shared')}
+          className={
+            view === 'shared'
+              ? 'rounded-md bg-sidebar px-3.5 py-1.5 text-sm font-semibold text-white'
+              : 'rounded-md px-3.5 py-1.5 text-sm font-semibold text-muted'
+          }
+        >
+          {t('tabs.shared')}
+        </button>
       </div>
 
-      {documents.length === 0 && !documentsQuery.isLoading ? (
-        <div className="flex flex-col items-center justify-center py-16 text-center">
-          <div className="mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-[22px] bg-ok-bg">
-            <span className="text-4xl">📄</span>
-          </div>
-          <h2 className="mb-2 text-xl font-extrabold tracking-tight">{t('emptyTitle')}</h2>
-          <p className="mb-6 max-w-[400px] text-[15px] leading-relaxed text-muted">
-            {t('emptyBody')}
-          </p>
+      {view === 'shared' ? (
+        <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+          {sharedDocuments.map((doc) => (
+            <Card key={doc.id} className="flex flex-col gap-3.5">
+              <div className="line-clamp-2 text-[14.5px] font-bold leading-tight">{doc.filename}</div>
+              <div className="flex flex-wrap gap-1.5 border-t border-[#EEF2F3] pt-3">
+                {doc.status === 'ready' && (
+                  <>
+                    <Button variant="secondary" onClick={() => setPreviewing(doc)}>
+                      {t('preview')}
+                    </Button>
+                    <Button variant="secondary" onClick={() => handleDownload(doc)}>
+                      {t('download')}
+                    </Button>
+                  </>
+                )}
+              </div>
+            </Card>
+          ))}
         </div>
       ) : (
         <>
-          <div className="mb-5 flex items-center gap-3">
-            <div className="flex gap-1 rounded-[10px] border border-line bg-white p-1">
-              {FILTERS.map((f) => (
-                <button
-                  key={f.id}
-                  onClick={() => setFilter(f.id)}
-                  className={
-                    filter === f.id
-                      ? 'rounded-md bg-sidebar px-3.5 py-1.5 text-sm font-semibold text-white'
-                      : 'rounded-md px-3.5 py-1.5 text-sm font-semibold text-muted'
-                  }
-                >
-                  {t(f.labelKey)}
-                </button>
-              ))}
-            </div>
-            <span className="flex-1" />
-            <span className="text-sm text-muted">{t('documentCount', { count: documents.length })}</span>
+          <div
+            onDragOver={handleDragOver}
+            onDragLeave={handleDragLeave}
+            onDrop={handleDrop}
+            className={
+              isDraggingOver
+                ? 'mb-6 rounded-[14px] border-2 border-accent bg-accent/5 p-4'
+                : 'mb-6 rounded-[14px] border-2 border-dashed border-line p-4'
+            }
+          >
+            <label
+              htmlFor="upload-input"
+              className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted"
+            >
+              {t('uploadLabel')}
+            </label>
+            <p className="mb-2 text-sm text-muted">{t('dragHint')}</p>
+            <input
+              id="upload-input"
+              type="file"
+              onChange={handleUpload}
+              className="block font-sans text-sm text-ink file:mr-4 file:rounded-[10px] file:border file:border-line file:bg-white file:px-3 file:py-2 file:text-xs file:font-semibold file:text-accent-hover hover:file:bg-app-bg"
+            />
           </div>
 
-          <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
-            {filtered.map((doc) => (
-              <Card key={doc.id} className="flex flex-col gap-3.5 animate-fade-up">
-                <div className="flex gap-3">
-                  <div className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-[11px] bg-app-bg">
-                    <span className="font-mono text-[11px] font-bold text-muted">
-                      {doc.file_type.toUpperCase()}
-                    </span>
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    <div className="line-clamp-2 text-[14.5px] font-bold leading-tight">
-                      {doc.filename}
+          {documents.length === 0 && !documentsQuery.isLoading ? (
+            <div className="flex flex-col items-center justify-center py-16 text-center">
+              <div className="mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-[22px] bg-ok-bg">
+                <span className="text-4xl">📄</span>
+              </div>
+              <h2 className="mb-2 text-xl font-extrabold tracking-tight">{t('emptyTitle')}</h2>
+              <p className="mb-6 max-w-[400px] text-[15px] leading-relaxed text-muted">
+                {t('emptyBody')}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="mb-5 flex items-center gap-3">
+                <div className="flex gap-1 rounded-[10px] border border-line bg-white p-1">
+                  {FILTERS.map((f) => (
+                    <button
+                      key={f.id}
+                      onClick={() => setFilter(f.id)}
+                      className={
+                        filter === f.id
+                          ? 'rounded-md bg-sidebar px-3.5 py-1.5 text-sm font-semibold text-white'
+                          : 'rounded-md px-3.5 py-1.5 text-sm font-semibold text-muted'
+                      }
+                    >
+                      {t(f.labelKey)}
+                    </button>
+                  ))}
+                </div>
+                <span className="flex-1" />
+                <span className="text-sm text-muted">{t('documentCount', { count: documents.length })}</span>
+              </div>
+
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
+                {filtered.map((doc) => (
+                  <Card key={doc.id} className="flex flex-col gap-3.5 animate-fade-up">
+                    <div className="flex gap-3">
+                      <div className="flex h-[46px] w-[46px] flex-shrink-0 items-center justify-center rounded-[11px] bg-app-bg">
+                        <span className="font-mono text-[11px] font-bold text-muted">
+                          {doc.file_type.toUpperCase()}
+                        </span>
+                      </div>
+                      <div className="min-w-0 flex-1">
+                        <div className="line-clamp-2 text-[14.5px] font-bold leading-tight">
+                          {doc.filename}
+                        </div>
+                        <div className="mt-1 text-xs text-faint">
+                          {t('uploadedOn', { date: new Date(doc.uploaded_at).toLocaleDateString() })}
+                        </div>
+                      </div>
                     </div>
-                    <div className="mt-1 text-xs text-faint">
-                      {t('uploadedOn', { date: new Date(doc.uploaded_at).toLocaleDateString() })}
+                    <div>
+                      <Badge variant={STATUS_VARIANT[doc.status]}>{t(`status.${doc.status}`)}</Badge>
                     </div>
-                  </div>
-                </div>
-                <div>
-                  <Badge variant={STATUS_VARIANT[doc.status]}>{t(`status.${doc.status}`)}</Badge>
-                </div>
-                <div className="flex flex-wrap gap-1.5 border-t border-[#EEF2F3] pt-3">
-                  {doc.status === 'ready' && (
-                    <>
-                      <Button variant="secondary" onClick={() => setPreviewing(doc)}>
-                        {t('preview')}
+                    <div className="flex flex-wrap gap-1.5 border-t border-[#EEF2F3] pt-3">
+                      {doc.status === 'ready' && (
+                        <>
+                          <Button variant="secondary" onClick={() => setPreviewing(doc)}>
+                            {t('preview')}
+                          </Button>
+                          <Button variant="secondary" onClick={() => handleDownload(doc)}>
+                            {t('download')}
+                          </Button>
+                        </>
+                      )}
+                      <Button variant="secondary" onClick={() => handleRename(doc)}>
+                        {t('rename')}
                       </Button>
-                      <Button variant="secondary" onClick={() => handleDownload(doc)}>
-                        {t('download')}
+                      <Button variant="secondary" onClick={() => setSharingDoc(doc)}>
+                        {t('share')}
                       </Button>
-                    </>
-                  )}
-                  <Button variant="secondary" onClick={() => handleRename(doc)}>
-                    {t('rename')}
-                  </Button>
-                  <Button variant="danger" onClick={() => handleDelete(doc)}>
-                    {t('delete')}
-                  </Button>
-                </div>
-              </Card>
-            ))}
-          </div>
+                      <Button variant="danger" onClick={() => handleDelete(doc)}>
+                        {t('delete')}
+                      </Button>
+                    </div>
+                  </Card>
+                ))}
+              </div>
+            </>
+          )}
         </>
       )}
 
       {previewing && <PreviewModal document={previewing} onClose={() => setPreviewing(null)} />}
+      {sharingDoc && (
+        <ShareTeamsModal
+          sharedTeamIds={sharingDoc.shared_team_ids}
+          onShare={(teamId) => shareMutation.mutate({ id: sharingDoc.id, teamId })}
+          onUnshare={(teamId) => unshareMutation.mutate({ id: sharingDoc.id, teamId })}
+          onClose={() => setSharingDoc(null)}
+        />
+      )}
     </div>
   )
 }
