@@ -20,7 +20,7 @@ describe('App', () => {
         <App />
       </MemoryRouter>,
     )
-    expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
   })
 
   it.each(['/documents', '/search', '/quiz', '/quiz/history', '/quiz/quiz-1/retake', '/chat'])(
@@ -31,7 +31,7 @@ describe('App', () => {
           <App />
         </MemoryRouter>,
       )
-      expect(await screen.findByRole('heading', { name: 'Log in' })).toBeInTheDocument()
+      expect(await screen.findByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
     },
   )
 })
