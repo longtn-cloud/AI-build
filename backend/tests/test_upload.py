@@ -77,6 +77,23 @@ def test_upload_rejects_oversized_file(monkeypatch):
     assert response.status_code == 400
 
 
+def test_upload_rejects_missing_filename(monkeypatch):
+    from app.routers import documents as documents_router
+
+    monkeypatch.setattr(documents_router, "upload_file", MagicMock())
+    monkeypatch.setattr(documents_router, "process_document", MagicMock())
+
+    _, headers = _create_user()
+
+    response = client.post(
+        "/documents",
+        headers=headers,
+        files={"file": (None, b"hello world", "text/plain")},
+    )
+
+    assert response.status_code == 400
+
+
 def test_upload_requires_auth():
     response = client.post(
         "/documents", files={"file": ("notes.txt", b"hello", "text/plain")}

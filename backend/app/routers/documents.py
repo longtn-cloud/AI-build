@@ -19,7 +19,8 @@ async def upload_document(
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id),
 ):
-    file_type = file.filename.rsplit(".", 1)[-1].lower() if "." in file.filename else ""
+    filename = file.filename or ""
+    file_type = filename.rsplit(".", 1)[-1].lower() if "." in filename else ""
     if file_type not in settings.allowed_file_types:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file_type}")
 
@@ -39,7 +40,7 @@ async def upload_document(
             RETURNING id, user_id, filename, file_type, storage_path, status,
                       error_reason, extracted_text, uploaded_at
             """,
-            (document_id, user_id, file.filename, file_type, storage_path),
+            (document_id, user_id, filename, file_type, storage_path),
         ).fetchone()
 
     background_tasks.add_task(process_document, document_id)
