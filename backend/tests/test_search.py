@@ -188,3 +188,32 @@ def test_search_paginates_with_offset_and_has_more(monkeypatch):
     ).json()
     assert len(second_page["results"]) == 5
     assert second_page["has_more"] is False
+
+
+def test_search_surfaces_exact_keyword_match_despite_poor_vector_similarity(monkeypatch):
+    from app.routers import search as search_router
+
+    monkeypatch.setattr(search_router, "embed_query", lambda q: TARGET_VEC)
+
+    user_id, headers = _create_user()
+    # 14 filler chunks with a perfect vector match but no keyword overlap.
+    _create_document_with_chunks(
+        user_id,
+        "noise.txt",
+        [TARGET_VEC] * 14,
+        contents=[f"unrelated filler paragraph number {i}" for i in range(14)],
+    )
+    # One chunk with a terrible vector match but the exact query keyword.
+    target_document_id = _create_document_with_chunks(
+        user_id,
+        "report.txt",
+        [DISTRACTOR_VEC],
+        contents=["the zyxqproj initiative launched in march"],
+    )
+
+    response = client.get("/search", params={"q": "zyxqproj"}, headers=headers)
+
+    assert response.status_code == 200
+    results = response.json()["results"]
+    assert results[0]["document_id"] == target_document_id
+    assert results[0]["filename"] == "report.txt"
