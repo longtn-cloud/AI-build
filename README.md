@@ -62,6 +62,8 @@ Migrations are plain SQL files in `backend/migrations/`, applied in order agains
 - `0003_quiz.sql` — `quizzes`, `quiz_questions`, `quiz_attempts`
 - `0004_search_fts.sql` — full-text search column (`chunks.content_tsv`)
 - `0005_chat_general_knowledge.sql` — `chat_messages.used_general_knowledge` flag
+- `0006_teams.sql` — `profiles` (auth.users email mirror, auto-populated by trigger), `teams`,
+  `team_members`, `document_shares`, `quiz_shares`
 
 Run them via the Supabase SQL editor or `psql "$SUPABASE_DB_URL" -f backend/migrations/000X_*.sql`, in numeric order.
 
@@ -138,7 +140,7 @@ Free-tier caveat: the service spins down after 15 minutes of inactivity, so the 
 ```
 backend/
   app/
-    routers/       # documents, search, chat, quiz — one file per feature
+    routers/       # documents, search, chat, quiz, teams — one file per feature
     services/       # embeddings.py (Gemini), llm.py (Gemini), extraction/chunking/processing/storage
     auth.py         # Supabase JWT verification -> get_current_user_id dependency
     db.py           # get_conn() -> psycopg connection
@@ -147,7 +149,7 @@ backend/
   tests/
 frontend/
   src/
-    pages/           # one page per feature (Documents, Search, Chat, Quiz, QuizHistory, Login, Signup)
+    pages/           # one page per feature (Documents, Search, Chat, Quiz, QuizHistory, Teams, Login, Signup)
     components/       # AppNav, AppShell, ProtectedRoute
     components/ui/     # Button, Input, Card, and other shared UI primitives
     lib/api.ts         # typed fetch client for the backend
@@ -170,12 +172,24 @@ All endpoints below (except `/health`) require a Supabase auth token and are sco
 | DELETE | `/documents/{id}` | Delete a document and its chunks |
 | GET | `/documents/{id}/download` | Download the original file |
 | GET | `/documents/{id}/preview` | Preview extracted text (or native render for PDF/TXT/MD) |
+| POST | `/documents/{id}/share` | Share a document with one of the caller's teams |
+| DELETE | `/documents/{id}/share/{team_id}` | Unshare a document from a team |
+| GET | `/documents/shared` | List documents shared with any team the caller belongs to |
 | GET | `/search?q=` | Pure retrieval: top-10 ranked passages, no LLM |
 | POST | `/chat/sessions` | Create a chat session |
 | POST | `/chat/sessions/{id}/messages` | Ask a question; answered from retrieved chunks (falling back to flagged general knowledge), or web search if opted in |
 | POST | `/quiz/generate` | Generate a quiz (5-20 questions) from selected documents |
 | POST | `/quiz/{quiz_id}/attempts` | Submit answers and get the attempt scored |
 | GET | `/quiz/attempts` | List past quiz attempts |
+| POST | `/quiz/{quiz_id}/share` | Share a quiz with one of the caller's teams |
+| DELETE | `/quiz/{quiz_id}/share/{team_id}` | Unshare a quiz from a team |
+| GET | `/quiz/shared` | List quizzes shared with any team the caller belongs to |
+| POST | `/teams` | Create a team (caller becomes admin) |
+| GET | `/teams` | List teams the caller belongs to |
+| GET | `/teams/{id}/members` | List a team's members |
+| GET | `/teams/{id}/members/search?q=` | Admin-only: search existing users by email |
+| POST | `/teams/{id}/members` | Admin-only: add an existing user to the team |
+| DELETE | `/teams/{id}/members/{user_id}` | Admin-only: remove a member |
 
 ## Core invariants
 
