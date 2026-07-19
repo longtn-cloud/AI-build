@@ -1,6 +1,6 @@
 import { screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { renderWithQueryClient } from '../test-utils'
 
@@ -22,6 +22,10 @@ function renderChatPage() {
 }
 
 describe('ChatPage', () => {
+  afterEach(() => {
+    i18n.changeLanguage('vi')
+  })
+
   it('creates a chat session on mount', async () => {
     ;(createChatSession as any).mockResolvedValue({
       id: 'session-1',
@@ -297,6 +301,5 @@ describe('ChatPage', () => {
     await waitFor(() => {
       expect(sendChatMessage).toHaveBeenCalledWith('session-1', 'hello', false, 'en')
     })
-    i18n.changeLanguage('vi')
   })
 })
