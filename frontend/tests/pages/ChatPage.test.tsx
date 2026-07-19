@@ -67,16 +67,16 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.change(screen.getByLabelText('Ask a question'), {
+    fireEvent.change(screen.getByLabelText('Đặt câu hỏi'), {
       target: { value: 'What is the refund window?' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     await waitFor(() => {
       expect(screen.getByText('Refunds are available within 30 days.')).toBeInTheDocument()
     })
     expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
-    expect(screen.getByText('policy.pdf — passage 2 of 3')).toBeInTheDocument()
+    expect(screen.getByText('policy.pdf — đoạn 2 trên 3')).toBeInTheDocument()
     expect(screen.queryByText('Web')).not.toBeInTheDocument()
     expect(sendChatMessage).toHaveBeenCalledWith('session-1', 'What is the refund window?', false)
   })
@@ -111,11 +111,11 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.click(screen.getByLabelText('Search the web for this message'))
-    fireEvent.change(screen.getByLabelText('Ask a question'), {
+    fireEvent.click(screen.getByLabelText('Tìm kiếm trên web cho tin nhắn này'))
+    fireEvent.change(screen.getByLabelText('Đặt câu hỏi'), {
       target: { value: "What's the weather in Paris?" },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     await waitFor(() => {
       expect(screen.getByText("It's sunny in Paris today.")).toBeInTheDocument()
@@ -135,11 +135,11 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.change(screen.getByLabelText('Ask a question'), { target: { value: 'hello' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.change(screen.getByLabelText('Đặt câu hỏi'), { target: { value: 'hello' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Failed to send message, try again')
+      expect(screen.getByRole('alert')).toHaveTextContent('Gửi tin nhắn thất bại, vui lòng thử lại')
     })
   })
 
@@ -153,7 +153,7 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     expect(sendChatMessage).not.toHaveBeenCalled()
   })
@@ -165,10 +165,10 @@ describe('ChatPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent(
-        'Failed to start chat session, try refreshing the page',
+        'Không thể bắt đầu phiên trò chuyện, vui lòng tải lại trang',
       )
     })
-    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Gửi' })).toBeDisabled()
   })
 
   it('renders a General knowledge badge when the answer has no document grounding', async () => {
@@ -201,15 +201,15 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.change(screen.getByLabelText('Ask a question'), {
+    fireEvent.change(screen.getByLabelText('Đặt câu hỏi'), {
       target: { value: 'What is the capital of France?' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     await waitFor(() => {
       expect(screen.getByText('Paris is the capital of France.')).toBeInTheDocument()
     })
-    expect(screen.getByText('General knowledge')).toBeInTheDocument()
+    expect(screen.getByText('Kiến thức chung')).toBeInTheDocument()
     expect(screen.queryByText('Web')).not.toBeInTheDocument()
   })
 
@@ -245,17 +245,17 @@ describe('ChatPage', () => {
     renderChatPage()
     await waitFor(() => expect(createChatSession).toHaveBeenCalled())
 
-    fireEvent.change(screen.getByLabelText('Ask a question'), {
+    fireEvent.change(screen.getByLabelText('Đặt câu hỏi'), {
       target: { value: 'What is the refund window and is that typical?' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gửi' }))
 
     await waitFor(() => {
       expect(
         screen.getByText('Refunds are available within 30 days, which is fairly typical for retailers.'),
       ).toBeInTheDocument()
     })
-    expect(screen.getByText('Documents + General knowledge')).toBeInTheDocument()
-    expect(screen.getByText('policy.pdf — passage 2 of 3')).toBeInTheDocument()
+    expect(screen.getByText('Tài liệu + Kiến thức chung')).toBeInTheDocument()
+    expect(screen.getByText('policy.pdf — đoạn 2 trên 3')).toBeInTheDocument()
   })
 })
