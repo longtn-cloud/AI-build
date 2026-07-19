@@ -63,6 +63,7 @@ export function SearchPage() {
   const [recent, setRecent] = useState(false)
   const [results, setResults] = useState<SearchResult[] | null>(null)
   const [hasMore, setHasMore] = useState(false)
+  const [visiblePerGroup, setVisiblePerGroup] = useState(PASSAGES_SHOWN)
 
   const searchMutation = useMutation({
     mutationFn: (vars: { q: string; fileType: SearchFileType | ''; recent: boolean; offset: number }) =>
@@ -76,6 +77,7 @@ export function SearchPage() {
         onSuccess: (response) => {
           setResults(response.results)
           setHasMore(response.has_more)
+          setVisiblePerGroup(PASSAGES_SHOWN)
         },
       },
     )
@@ -89,6 +91,7 @@ export function SearchPage() {
         onSuccess: (response) => {
           setResults([...results, ...response.results])
           setHasMore(response.has_more)
+          setVisiblePerGroup((prev) => prev + PASSAGES_SHOWN)
         },
       },
     )
@@ -185,7 +188,7 @@ export function SearchPage() {
                   </span>
                 </div>
                 <ul className="space-y-2">
-                  {group.passages.slice(0, PASSAGES_SHOWN).map((passage) => (
+                  {group.passages.slice(0, visiblePerGroup).map((passage) => (
                     <li key={passage.chunk_index}>
                       <p className="text-xs text-faint">
                         passage {passage.chunk_index + 1} of {passage.total_chunks}
@@ -196,9 +199,9 @@ export function SearchPage() {
                     </li>
                   ))}
                 </ul>
-                {group.passages.length > PASSAGES_SHOWN && (
+                {group.passages.length > visiblePerGroup && (
                   <p className="text-xs text-faint">
-                    +{group.passages.length - PASSAGES_SHOWN} more passages in this document
+                    +{group.passages.length - visiblePerGroup} more passages in this document
                   </p>
                 )}
               </Card>
