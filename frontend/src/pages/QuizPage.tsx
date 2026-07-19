@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { useParams } from 'react-router-dom'
+import { useNavigate, useParams } from 'react-router-dom'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -22,7 +22,16 @@ export function QuizPage() {
   const queryClient = useQueryClient()
   const selected = answers[qIndex]?.selected_option ?? null
 
+  const navigate = useNavigate()
   const { quizId: retakeQuizId } = useParams<{ quizId?: string }>()
+
+  function goToList() {
+    if (retakeQuizId) {
+      navigate('/quiz')
+      return
+    }
+    setView('list')
+  }
 
   const retakeQuery = useQuery({
     queryKey: retakeQuizId ? queryKeys.quiz(retakeQuizId) : queryKeys.quiz('none'),
@@ -244,7 +253,7 @@ export function QuizPage() {
     return (
       <div className="mx-auto max-w-[680px] px-8 pb-12 pt-7">
         <div className="mb-2 flex items-center gap-3.5">
-          <button onClick={() => setView('list')} className="text-sm font-semibold text-faint">
+          <button onClick={goToList} className="text-sm font-semibold text-faint">
             ✕ Exit
           </button>
           <span className="flex-1" />
@@ -326,7 +335,7 @@ export function QuizPage() {
           <Button variant="secondary" onClick={() => setView('config')}>
             Retake quiz
           </Button>
-          <Button onClick={() => setView('list')}>Back to quizzes</Button>
+          <Button onClick={goToList}>Back to quizzes</Button>
         </div>
       </div>
     )
