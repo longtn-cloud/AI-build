@@ -117,7 +117,12 @@ async def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_cu
         total_chunks_by_doc = {c["document_id"]: c["total_chunks"] for c in chunks}
         valid_document_ids = set(document_ids)
 
-        raw_questions = generate_quiz_questions(chunks, body.num_questions)
+        try:
+            raw_questions = generate_quiz_questions(chunks, body.num_questions)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502, detail="Failed to generate quiz questions, please try again"
+            ) from exc
         valid_questions = [
             q
             for raw in raw_questions
