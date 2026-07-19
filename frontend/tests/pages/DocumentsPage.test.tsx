@@ -53,7 +53,7 @@ describe('DocumentsPage', () => {
     await waitFor(() => expect(listDocuments).toHaveBeenCalledTimes(1))
 
     const file = new File(['hello'], 'notes.txt', { type: 'text/plain' })
-    const input = screen.getByLabelText('Upload document') as HTMLInputElement
+    const input = screen.getByLabelText('Tải lên tài liệu') as HTMLInputElement
     fireEvent.change(input, { target: { files: [file] } })
 
     await waitFor(() => {
@@ -78,7 +78,7 @@ describe('DocumentsPage', () => {
     await waitFor(() => expect(listDocuments).toHaveBeenCalledTimes(1))
 
     const file = new File(['hello'], 'dropped.pdf', { type: 'application/pdf' })
-    const input = screen.getByLabelText('Upload document')
+    const input = screen.getByLabelText('Tải lên tài liệu')
     fireEvent.drop(input, { dataTransfer: { files: [file] } })
 
     await waitFor(() => {
@@ -97,7 +97,7 @@ describe('DocumentsPage', () => {
     renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Rename' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Đổi tên' }))
 
     await waitFor(() => {
       expect(renameDocument).toHaveBeenCalledWith('1', 'renamed.pdf')
@@ -115,7 +115,7 @@ describe('DocumentsPage', () => {
     renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xóa' }))
 
     await waitFor(() => {
       expect(deleteDocument).toHaveBeenCalledWith('1')
@@ -133,7 +133,7 @@ describe('DocumentsPage', () => {
     renderWithQueryClient(<DocumentsPage />)
     await waitFor(() => screen.getByText('report.pdf'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Download' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tải xuống' }))
 
     await waitFor(() => {
       expect(openSpy).toHaveBeenCalledWith('https://signed.example/file.pdf', '_blank')
@@ -154,7 +154,7 @@ describe('DocumentsPage', () => {
         await vi.advanceTimersByTimeAsync(0)
       })
       expect(listDocuments).toHaveBeenCalledTimes(1)
-      expect(screen.getByText('Processing…')).toBeInTheDocument()
+      expect(screen.getByText('Đang xử lý…')).toBeInTheDocument()
 
       await act(async () => {
         await vi.advanceTimersByTimeAsync(3000)
@@ -166,7 +166,7 @@ describe('DocumentsPage', () => {
         await vi.advanceTimersByTimeAsync(10)
       })
       expect(listDocuments).toHaveBeenCalledTimes(2)
-      expect(screen.getByText('Indexed')).toBeInTheDocument()
+      expect(screen.getByText('Đã lập chỉ mục')).toBeInTheDocument()
 
       // No further polling once nothing is pending.
       await act(async () => {

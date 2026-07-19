@@ -31,7 +31,7 @@ describe('PreviewModal', () => {
     render(<PreviewModal document={{ ...baseDoc, file_type: 'pdf' }} onClose={() => {}} />)
 
     await waitFor(() => {
-      expect(screen.getByTitle('Document preview')).toHaveAttribute(
+      expect(screen.getByTitle('Xem trước tài liệu')).toHaveAttribute(
         'src',
         'https://signed.example/file.pdf',
       )
@@ -79,7 +79,7 @@ describe('PreviewModal', () => {
       expect(screen.getByText('plain file contents')).toBeInTheDocument()
     })
 
-    const closeButton = screen.getByRole('button', { name: 'Close' })
+    const closeButton = screen.getByRole('button', { name: 'Đóng' })
     const scrollContainer = screen.getByText('plain file contents').closest('.overflow-auto')
     expect(scrollContainer).not.toBeNull()
     expect(scrollContainer?.contains(closeButton)).toBe(false)
@@ -96,7 +96,7 @@ describe('PreviewModal', () => {
     render(<PreviewModal document={{ ...baseDoc, file_type: 'txt' }} onClose={() => {}} />)
 
     await waitFor(() => {
-      expect(screen.getByText('Failed to load preview.')).toBeInTheDocument()
+      expect(screen.getByText('Tải bản xem trước thất bại.')).toBeInTheDocument()
     })
     expect(screen.queryByText('AccessDenied', { exact: false })).not.toBeInTheDocument()
   })

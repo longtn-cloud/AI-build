@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
+import { useTranslation } from 'react-i18next'
 
 import { Button } from './ui/Button'
 import { Document, getDownloadUrl, getPreviewText } from '../lib/api'
@@ -13,6 +14,7 @@ export function PreviewModal({
   document: PreviewableDocument
   onClose: () => void
 }) {
+  const { t } = useTranslation('documents')
   const [content, setContent] = useState<{ kind: 'pdf' | 'markdown' | 'text'; value: string } | null>(
     null,
   )
@@ -34,7 +36,7 @@ export function PreviewModal({
       const url = await getDownloadUrl(document.id)
       const response = await fetch(url)
       if (!response.ok) {
-        if (!cancelled) setContent({ kind: 'text', value: 'Failed to load preview.' })
+        if (!cancelled) setContent({ kind: 'text', value: t('previewFailed') })
         return
       }
       const text = await response.text()
@@ -47,19 +49,19 @@ export function PreviewModal({
     return () => {
       cancelled = true
     }
-  }, [document])
+  }, [document, t])
 
   return (
     <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-ink/60 p-4">
       <div className="flex max-h-full w-full max-w-3xl flex-col rounded-[14px] border border-line bg-white">
         <div className="flex shrink-0 justify-end border-b border-line p-4">
           <Button variant="secondary" onClick={onClose}>
-            Close
+            {t('close')}
           </Button>
         </div>
         <div className="overflow-auto p-4">
           {content?.kind === 'pdf' && (
-            <iframe title="Document preview" src={content.value} width="100%" height="600" />
+            <iframe title={t('previewTitle')} src={content.value} width="100%" height="600" />
           )}
           {content?.kind === 'markdown' && (
             <div className="prose prose-sm max-w-none text-ink">
