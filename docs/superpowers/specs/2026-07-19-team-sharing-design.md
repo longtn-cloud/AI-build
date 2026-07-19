@@ -108,10 +108,16 @@ Extensions to `backend/app/routers/documents.py`:
   (idempotent).
 - `DELETE /documents/{id}/share/{team_id}` — owner-only; removes the share row.
 - `GET /documents/shared` — lists documents shared with any team the caller belongs to (backs the
-  "Shared with me" tab), same response shape as `GET /documents` plus `shared_by`/`team_id`.
+  "Shared with me" tab), same response shape as `GET /documents`.
+- `GET /documents` gains a `shared_team_ids: list[str]` field per document (via a
+  `document_shares` subquery) so the owner's share picker can show current share state and toggle
+  unshare without a separate lookup call.
 
 Extensions to `backend/app/routers/quiz.py`: identical trio —
-`POST /quiz/{id}/share`, `DELETE /quiz/{id}/share/{team_id}`, `GET /quiz/shared`.
+`POST /quiz/{id}/share`, `DELETE /quiz/{id}/share/{team_id}`, `GET /quiz/shared` (returns quiz
+definitions, not attempts — `{id, document_ids, created_at}`, since that's what "take this shared
+quiz" needs). `GET /quiz/attempts` gains the same `shared_team_ids` field per attempt's quiz, for
+the same share-picker reason.
 
 Extensions using the shared access helper:
 
