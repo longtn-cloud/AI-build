@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ReactMarkdown from 'react-markdown'
 
 import { Button } from './ui/Button'
 import { Document, getDownloadUrl, getPreviewText } from '../lib/api'
@@ -12,7 +13,9 @@ export function PreviewModal({
   document: PreviewableDocument
   onClose: () => void
 }) {
-  const [content, setContent] = useState<{ kind: 'pdf' | 'text'; value: string } | null>(null)
+  const [content, setContent] = useState<{ kind: 'pdf' | 'markdown' | 'text'; value: string } | null>(
+    null,
+  )
 
   useEffect(() => {
     let cancelled = false
@@ -35,7 +38,9 @@ export function PreviewModal({
         return
       }
       const text = await response.text()
-      if (!cancelled) setContent({ kind: 'text', value: text })
+      if (!cancelled) {
+        setContent({ kind: document.file_type === 'md' ? 'markdown' : 'text', value: text })
+      }
     }
 
     load()
@@ -46,18 +51,25 @@ export function PreviewModal({
 
   return (
     <div role="dialog" className="fixed inset-0 flex items-center justify-center bg-ink/60 p-4">
-      <div className="max-h-full w-full max-w-3xl overflow-auto rounded-[14px] border border-line bg-white p-4">
-        <div className="mb-2 flex justify-end">
+      <div className="flex max-h-full w-full max-w-3xl flex-col rounded-[14px] border border-line bg-white">
+        <div className="flex shrink-0 justify-end border-b border-line p-4">
           <Button variant="secondary" onClick={onClose}>
             Close
           </Button>
         </div>
-        {content?.kind === 'pdf' && (
-          <iframe title="Document preview" src={content.value} width="100%" height="600" />
-        )}
-        {content?.kind === 'text' && (
-          <pre className="whitespace-pre-wrap font-mono text-sm text-ink">{content.value}</pre>
-        )}
+        <div className="overflow-auto p-4">
+          {content?.kind === 'pdf' && (
+            <iframe title="Document preview" src={content.value} width="100%" height="600" />
+          )}
+          {content?.kind === 'markdown' && (
+            <div className="prose prose-sm max-w-none text-ink">
+              <ReactMarkdown>{content.value}</ReactMarkdown>
+            </div>
+          )}
+          {content?.kind === 'text' && (
+            <pre className="whitespace-pre-wrap font-mono text-sm text-ink">{content.value}</pre>
+          )}
+        </div>
       </div>
     </div>
   )

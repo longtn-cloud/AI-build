@@ -58,6 +58,33 @@ describe('PreviewModal', () => {
     })
   })
 
+  it('renders markdown files with formatting instead of plain text', async () => {
+    ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/file.md')
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => '# Heading\n\nSome **bold** text.' })
+
+    render(<PreviewModal document={{ ...baseDoc, file_type: 'md' }} onClose={() => {}} />)
+
+    await waitFor(() => {
+      expect(screen.getByRole('heading', { name: 'Heading' })).toBeInTheDocument()
+    })
+    expect(screen.getByText('bold')).toBeInTheDocument()
+  })
+
+  it('keeps the close button outside the scrollable content area', async () => {
+    ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/file.txt')
+
+    render(<PreviewModal document={{ ...baseDoc, file_type: 'txt' }} onClose={() => {}} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('plain file contents')).toBeInTheDocument()
+    })
+
+    const closeButton = screen.getByRole('button', { name: 'Close' })
+    const scrollContainer = screen.getByText('plain file contents').closest('.overflow-auto')
+    expect(scrollContainer).not.toBeNull()
+    expect(scrollContainer?.contains(closeButton)).toBe(false)
+  })
+
   it('shows a failure message instead of rendering an error body as preview text', async () => {
     ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/expired.txt')
     globalThis.fetch = vi.fn().mockResolvedValue({
