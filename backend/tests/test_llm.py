@@ -1,11 +1,16 @@
 from unittest.mock import MagicMock
 
+import pytest
+
 from app.services import llm
 
 
-def test_answer_from_chunks_calls_gemini_with_context_and_disabled_thinking(monkeypatch):
+def test_answer_from_chunks_calls_gemini_with_context_and_dynamic_thinking(monkeypatch):
     fake_client = MagicMock()
-    fake_client.models.generate_content.return_value = MagicMock(text="Refunds are available within 30 days.")
+    fake_call = MagicMock()
+    fake_call.name = "provide_answer"
+    fake_call.args = {"answer": "Refunds are available within 30 days.", "used_general_knowledge": False}
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
     monkeypatch.setattr(llm, "_client", fake_client)
 
     chunks = [
@@ -21,27 +26,76 @@ def test_answer_from_chunks_calls_gemini_with_context_and_disabled_thinking(monk
 
     result = llm.answer_from_chunks("What is the refund window?", chunks)
 
-    assert result == "Refunds are available within 30 days."
+    assert result == {"answer": "Refunds are available within 30 days.", "used_general_knowledge": False}
     _, kwargs = fake_client.models.generate_content.call_args
     assert kwargs["model"] == llm.MODEL
-    assert kwargs["config"].thinking_config.thinking_budget == 0
-    assert kwargs["config"].system_instruction == llm.SYSTEM_PROMPT
-    assert "policy.pdf" in kwargs["contents"]
-    assert "passage 2 of 3" in kwargs["contents"]
-    assert "Refunds must be requested within 30 days" in kwargs["contents"]
-    assert "What is the refund window?" in kwargs["contents"]
+    assert kwargs["config"].thinking_config.thinking_budget == -1
+    assert kwargs["config"].system_instruction == llm.DOCUMENTS_SYSTEM_PROMPT
+    assert kwargs["config"].tools[0].function_declarations == [llm.ANSWER_TOOL]
+    tool_config = kwargs["config"].tool_config
+    assert tool_config.function_calling_config.mode == "ANY"
+    assert tool_config.function_calling_config.allowed_function_names == ["provide_answer"]
+
+    contents = kwargs["contents"]
+    assert len(contents) == 1
+    turn_text = contents[0].parts[0].text
+    assert "policy.pdf" in turn_text
+    assert "passage 2 of 3" in turn_text
+    assert "Refunds must be requested within 30 days" in turn_text
+    assert "What is the refund window?" in turn_text
 
 
-def test_answer_from_chunks_returns_response_text(monkeypatch):
+def test_answer_from_chunks_uses_general_knowledge_prompt_when_no_chunks(monkeypatch):
     fake_client = MagicMock()
-    fake_client.models.generate_content.return_value = MagicMock(text="Part one. Part two.")
+    fake_call = MagicMock()
+    fake_call.name = "provide_answer"
+    fake_call.args = {"answer": "Paris is the capital of France.", "used_general_knowledge": True}
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
     monkeypatch.setattr(llm, "_client", fake_client)
 
-    result = llm.answer_from_chunks(
-        "q", [{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c", "score": 0.9}]
-    )
+    result = llm.answer_from_chunks("What is the capital of France?", [])
 
-    assert result == "Part one. Part two."
+    assert result == {"answer": "Paris is the capital of France.", "used_general_knowledge": True}
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert kwargs["config"].system_instruction == llm.GENERAL_KNOWLEDGE_SYSTEM_PROMPT
+    turn_text = kwargs["contents"][-1].parts[0].text
+    assert turn_text == "What is the capital of France?"
+    assert "Document passages" not in turn_text
+
+
+def test_answer_from_chunks_includes_conversation_history(monkeypatch):
+    fake_client = MagicMock()
+    fake_call = MagicMock()
+    fake_call.name = "provide_answer"
+    fake_call.args = {"answer": "The second one is a laptop.", "used_general_knowledge": False}
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    history = [
+        {"role": "user", "content": "What products do you have?"},
+        {"role": "assistant", "content": "A phone and a laptop."},
+    ]
+
+    llm.answer_from_chunks("What about the second one?", [], history=history)
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    contents = kwargs["contents"]
+    assert len(contents) == 3
+    assert contents[0].role == "user"
+    assert contents[0].parts[0].text == "What products do you have?"
+    assert contents[1].role == "model"
+    assert contents[1].parts[0].text == "A phone and a laptop."
+    assert contents[2].role == "user"
+    assert contents[2].parts[0].text == "What about the second one?"
+
+
+def test_answer_from_chunks_raises_when_no_tool_call(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=None)
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    with pytest.raises(RuntimeError):
+        llm.answer_from_chunks("question", [])
 
 
 def test_answer_with_web_search_calls_gemini_with_search_tool(monkeypatch):
@@ -54,10 +108,32 @@ def test_answer_with_web_search_calls_gemini_with_search_tool(monkeypatch):
     assert result == "It's sunny today."
     _, kwargs = fake_client.models.generate_content.call_args
     assert kwargs["model"] == llm.MODEL
-    assert kwargs["contents"] == "What's the weather?"
+    contents = kwargs["contents"]
+    assert len(contents) == 1
+    assert contents[0].parts[0].text == "What's the weather?"
     tools = kwargs["config"].tools
     assert len(tools) == 1
     assert tools[0].google_search is not None
+
+
+def test_answer_with_web_search_includes_conversation_history(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = MagicMock(text="Still sunny tomorrow.")
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    history = [
+        {"role": "user", "content": "What's the weather in Paris?"},
+        {"role": "assistant", "content": "It's sunny today."},
+    ]
+
+    llm.answer_with_web_search("And tomorrow?", history=history)
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    contents = kwargs["contents"]
+    assert len(contents) == 3
+    assert contents[0].parts[0].text == "What's the weather in Paris?"
+    assert contents[1].role == "model"
+    assert contents[2].parts[0].text == "And tomorrow?"
 
 
 def test_generate_quiz_questions_calls_gemini_with_forced_tool_and_context(monkeypatch):
