@@ -170,6 +170,14 @@ export async function generateQuiz(documentIds: string[], numQuestions: number):
   return res.json()
 }
 
+export async function getQuiz(quizId: string): Promise<Quiz> {
+  const res = await apiFetch(`${API_BASE}/quiz/${quizId}`, {
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to load quiz')
+  return res.json()
+}
+
 export type QuizAnswer = { question_id: string; selected_option: number }
 
 export type QuizResult = {

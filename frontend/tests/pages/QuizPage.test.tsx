@@ -8,21 +8,34 @@ vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
   listQuizAttempts: vi.fn(),
   generateQuiz: vi.fn(),
+  getQuiz: vi.fn(),
   submitQuizAttempt: vi.fn(),
 }))
 
 import {
   generateQuiz,
+  getQuiz,
   listDocuments,
   listQuizAttempts,
   submitQuizAttempt,
 } from '../../src/lib/api'
+import { Route, Routes } from 'react-router-dom'
 import { QuizPage } from '../../src/pages/QuizPage'
 
 function renderQuizPage() {
   return renderWithQueryClient(
     <MemoryRouter>
       <QuizPage />
+    </MemoryRouter>,
+  )
+}
+
+function renderQuizPageAt(path: string) {
+  return renderWithQueryClient(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/quiz/:quizId/retake" element={<QuizPage />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -211,5 +224,81 @@ describe('QuizPage', () => {
     fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
 
     expect(generateQuiz).not.toHaveBeenCalled()
+  })
+
+  it('allows changing the selected answer before moving on', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
+    ;(generateQuiz as any).mockResolvedValue(QUIZ)
+    ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
+
+    renderQuizPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+
+    fireEvent.click(screen.getByText('7 days'))
+    fireEvent.click(screen.getByText('30 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+    fireEvent.click(screen.getByText('Service outages'))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+
+    await waitFor(() => {
+      expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [
+        { question_id: 'q-1', selected_option: 1 },
+        { question_id: 'q-2', selected_option: 1 },
+      ])
+    })
+  })
+
+  it('goes back to the previous question and keeps its answer editable', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
+    ;(generateQuiz as any).mockResolvedValue(QUIZ)
+    ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
+
+    renderQuizPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    fireEvent.click(screen.getByText('30 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+    fireEvent.click(screen.getByText('60 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+    fireEvent.click(screen.getByText('Data breaches'))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+
+    await waitFor(() => {
+      expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [
+        { question_id: 'q-1', selected_option: 2 },
+        { question_id: 'q-2', selected_option: 0 },
+      ])
+    })
+  })
+
+  it('loads a persisted quiz and starts taking it when visited via the retake route', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(getQuiz as any).mockResolvedValue(QUIZ)
+
+    renderQuizPageAt('/quiz/quiz-1/retake')
+
+    await waitFor(() => {
+      expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
+    })
+    expect(getQuiz).toHaveBeenCalledWith('quiz-1')
   })
 })

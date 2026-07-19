@@ -23,7 +23,7 @@ describe('App', () => {
     expect(screen.getByRole('heading', { name: 'Log in' })).toBeInTheDocument()
   })
 
-  it.each(['/documents', '/search', '/quiz', '/quiz/history', '/chat'])(
+  it.each(['/documents', '/search', '/quiz', '/quiz/history', '/quiz/quiz-1/retake', '/chat'])(
     'redirects unauthenticated visitors from %s to the login page',
     async (path) => {
       render(

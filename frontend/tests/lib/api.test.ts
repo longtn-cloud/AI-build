@@ -15,6 +15,7 @@ import {
   generateQuiz,
   getDownloadUrl,
   getPreviewText,
+  getQuiz,
   listDocuments,
   listQuizAttempts,
   renameDocument,
@@ -246,6 +247,21 @@ describe('api client', () => {
     ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
 
     await expect(generateQuiz(['doc-1'], 5)).rejects.toThrow('Failed to generate quiz')
+  })
+
+  it('getQuiz sends an authorized GET request for the quiz id', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 'quiz-1', document_ids: [], requested_count: 1, actual_count: 1, created_at: '2026-07-19T00:00:00Z', questions: [] }),
+    })
+
+    const result = await getQuiz('quiz-1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/quiz-1'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
+    expect(result.id).toBe('quiz-1')
   })
 
   it('submitQuizAttempt sends answers and returns the scored result', async () => {

@@ -317,3 +317,36 @@ def list_attempts(user_id: str = Depends(get_current_user_id)):
             for row in attempt_rows
         ]
     }
+
+
+@router.get("/{quiz_id}")
+def get_quiz(quiz_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        quiz_row = conn.execute(
+            "SELECT id, document_ids, created_at FROM quizzes WHERE id = %s AND user_id = %s",
+            (quiz_id, user_id),
+        ).fetchone()
+        if quiz_row is None:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+
+        question_rows = conn.execute(
+            """
+            SELECT id, question, options
+            FROM quiz_questions
+            WHERE quiz_id = %s
+            ORDER BY question_index
+            """,
+            (quiz_id,),
+        ).fetchall()
+
+    return {
+        "id": str(quiz_row["id"]),
+        "document_ids": [str(d) for d in quiz_row["document_ids"]],
+        "requested_count": len(question_rows),
+        "actual_count": len(question_rows),
+        "created_at": quiz_row["created_at"].isoformat(),
+        "questions": [
+            {"id": str(r["id"]), "question": r["question"], "options": r["options"]}
+            for r in question_rows
+        ],
+    }
