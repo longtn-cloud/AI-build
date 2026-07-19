@@ -35,61 +35,78 @@ def search(
     query_embedding = embed_query(q)
 
     filters_sql = "d.user_id = %s"
-    params: list = [query_embedding, q, user_id]
+    filter_params: list = [user_id]
 
     if file_type is not None:
         types = FILE_TYPE_GROUPS[file_type]
         placeholders = ", ".join(["%s"] * len(types))
         filters_sql += f" AND d.file_type IN ({placeholders})"
-        params.extend(types)
+        filter_params.extend(types)
 
     if recent:
         filters_sql += " AND d.uploaded_at >= now() - interval '30 days'"
 
     sql = f"""
-        WITH filtered AS (
-            SELECT
-                c.id, c.document_id, c.content, c.chunk_index,
-                d.filename,
-                count(*) OVER (PARTITION BY c.document_id) AS total_chunks,
-                c.embedding <=> %s::vector AS vec_distance,
-                ts_rank_cd(c.content_tsv, websearch_to_tsquery('english', %s)) AS fts_score
+        WITH doc_chunk_counts AS (
+            SELECT c.document_id, count(*) AS total_chunks
             FROM chunks c
             JOIN documents d ON d.id = c.document_id
             WHERE {filters_sql}
+            GROUP BY c.document_id
         ),
         vec_candidates AS (
-            SELECT id, row_number() OVER (ORDER BY vec_distance) AS vec_rank
-            FROM filtered
-            ORDER BY vec_distance
+            SELECT
+                c.id, c.document_id, c.content, c.chunk_index, d.filename,
+                row_number() OVER (ORDER BY c.embedding <=> %s::vector) AS vec_rank
+            FROM chunks c
+            JOIN documents d ON d.id = c.document_id
+            WHERE {filters_sql}
+            ORDER BY c.embedding <=> %s::vector
             LIMIT {CANDIDATE_POOL}
         ),
         fts_candidates AS (
-            SELECT id, row_number() OVER (ORDER BY fts_score DESC) AS fts_rank
-            FROM filtered
-            WHERE fts_score > 0
-            ORDER BY fts_score DESC
+            SELECT
+                c.id, c.document_id, c.content, c.chunk_index, d.filename,
+                row_number() OVER (
+                    ORDER BY ts_rank_cd(c.content_tsv, websearch_to_tsquery('english', %s)) DESC
+                ) AS fts_rank
+            FROM chunks c
+            JOIN documents d ON d.id = c.document_id
+            WHERE {filters_sql} AND c.content_tsv @@ websearch_to_tsquery('english', %s)
+            ORDER BY ts_rank_cd(c.content_tsv, websearch_to_tsquery('english', %s)) DESC
             LIMIT {CANDIDATE_POOL}
         ),
         fused AS (
             SELECT
                 COALESCE(v.id, f.id) AS id,
+                COALESCE(v.document_id, f.document_id) AS document_id,
+                COALESCE(v.filename, f.filename) AS filename,
+                COALESCE(v.chunk_index, f.chunk_index) AS chunk_index,
+                COALESCE(v.content, f.content) AS content,
                 COALESCE(1.0 / ({RRF_K} + v.vec_rank), 0)
                     + COALESCE(1.0 / ({RRF_K} + f.fts_rank), 0) AS fused_score
             FROM vec_candidates v
             FULL OUTER JOIN fts_candidates f ON v.id = f.id
         )
         SELECT
-            filtered.document_id, filtered.filename, filtered.chunk_index, filtered.total_chunks,
-            filtered.content, fused.fused_score,
+            fused.document_id, fused.filename, fused.chunk_index,
+            doc_chunk_counts.total_chunks,
+            fused.content, fused.fused_score,
             count(*) OVER () AS total_matches
         FROM fused
-        JOIN filtered ON filtered.id = fused.id
+        JOIN doc_chunk_counts ON doc_chunk_counts.document_id = fused.document_id
         ORDER BY fused.fused_score DESC
         LIMIT {PAGE_SIZE} OFFSET %s
     """
 
-    params.append(offset)
+    params = (
+        filter_params
+        + [query_embedding]
+        + filter_params
+        + [query_embedding, q]
+        + filter_params
+        + [q, q, offset]
+    )
 
     with get_conn() as conn:
         rows = conn.execute(sql, params).fetchall()
