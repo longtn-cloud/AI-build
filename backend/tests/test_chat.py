@@ -364,3 +364,29 @@ def test_send_message_passes_requested_language_to_llm(monkeypatch):
 
     assert response.status_code == 201
     answer_mock.assert_called_once_with("hello", [], [], "en")
+
+
+def test_chat_answers_from_documents_shared_with_caller_team(monkeypatch):
+    from app.routers import chat as chat_router
+
+    owner_id, owner_headers = _create_user()
+    member_id, member_headers = _create_user()
+    team_id = client.post("/teams", json={"name": "Team"}, headers=owner_headers).json()["id"]
+    client.post(f"/teams/{team_id}/members", json={"user_id": member_id}, headers=owner_headers)
+    document_id = _create_document_with_chunks(owner_id, "policy.txt", [RELEVANT_VEC])
+    client.post(f"/documents/{document_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    answer_mock = MagicMock(return_value={"answer": "From the shared doc", "used_general_knowledge": False})
+    monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
+
+    session_id = _create_session(member_headers)
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What does the policy say?"},
+        headers=member_headers,
+    )
+
+    assert response.status_code == 201
+    chunks_passed = answer_mock.call_args[0][1]
+    assert any(c["document_id"] == document_id for c in chunks_passed)

@@ -7,6 +7,7 @@ from psycopg.types.json import Json
 
 from app.auth import get_current_user_id
 from app.db import get_conn
+from app.services.access import DOCUMENT_ACCESS_CLAUSE, QUIZ_ACCESS_CLAUSE, access_params, is_team_member
 from app.services.llm import generate_quiz_questions, llm_error_response
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
@@ -78,14 +79,14 @@ def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_
 
     with get_conn() as conn:
         owned_rows = conn.execute(
-            "SELECT id FROM documents WHERE user_id = %s AND id = ANY(%s)",
-            (user_id, document_ids),
+            f"SELECT id FROM documents d WHERE d.id = ANY(%s) AND {DOCUMENT_ACCESS_CLAUSE}",
+            (document_ids, *access_params(user_id)),
         ).fetchall()
         if len(owned_rows) != len(document_ids):
             raise HTTPException(status_code=404, detail="One or more selected documents were not found")
 
         chunk_rows = conn.execute(
-            """
+            f"""
             SELECT
                 d.id AS document_id,
                 d.filename,
@@ -94,10 +95,10 @@ def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_
                 count(*) OVER (PARTITION BY c.document_id) AS total_chunks
             FROM chunks c
             JOIN documents d ON d.id = c.document_id
-            WHERE d.user_id = %s AND d.id = ANY(%s)
+            WHERE d.id = ANY(%s) AND {DOCUMENT_ACCESS_CLAUSE}
             ORDER BY d.id, c.chunk_index
             """,
-            (user_id, document_ids),
+            (document_ids, *access_params(user_id)),
         ).fetchall()
 
         if not chunk_rows:
@@ -204,8 +205,8 @@ def submit_attempt(
 ):
     with get_conn() as conn:
         quiz_row = conn.execute(
-            "SELECT id FROM quizzes WHERE id = %s AND user_id = %s",
-            (quiz_id, user_id),
+            f"SELECT id FROM quizzes q WHERE q.id = %s AND {QUIZ_ACCESS_CLAUSE}",
+            (quiz_id, *access_params(user_id)),
         ).fetchone()
         if quiz_row is None:
             raise HTTPException(status_code=404, detail="Quiz not found")
@@ -289,7 +290,8 @@ def list_attempts(user_id: str = Depends(get_current_user_id)):
                 a.score,
                 a.completed_at,
                 q.document_ids,
-                (SELECT count(*) FROM quiz_questions qq WHERE qq.quiz_id = a.quiz_id) AS total_questions
+                (SELECT count(*) FROM quiz_questions qq WHERE qq.quiz_id = a.quiz_id) AS total_questions,
+                (SELECT array_agg(team_id) FROM quiz_shares WHERE quiz_id = a.quiz_id) AS shared_team_ids
             FROM quiz_attempts a
             JOIN quizzes q ON q.id = a.quiz_id
             WHERE a.user_id = %s
@@ -300,8 +302,8 @@ def list_attempts(user_id: str = Depends(get_current_user_id)):
 
         all_document_ids = {str(d) for row in attempt_rows for d in row["document_ids"]}
         filename_rows = conn.execute(
-            "SELECT id, filename FROM documents WHERE user_id = %s AND id = ANY(%s)",
-            (user_id, list(all_document_ids)),
+            f"SELECT id, filename FROM documents d WHERE d.id = ANY(%s) AND {DOCUMENT_ACCESS_CLAUSE}",
+            (list(all_document_ids), *access_params(user_id)),
         ).fetchall()
         filename_by_id = {str(r["id"]): r["filename"] for r in filename_rows}
 
@@ -316,8 +318,35 @@ def list_attempts(user_id: str = Depends(get_current_user_id)):
                 "document_filenames": [
                     filename_by_id.get(str(d), "(deleted document)") for d in row["document_ids"]
                 ],
+                "shared_team_ids": [str(t) for t in (row["shared_team_ids"] or [])],
             }
             for row in attempt_rows
+        ]
+    }
+
+
+@router.get("/shared")
+def list_shared_quizzes(user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT q.id, q.document_ids, q.created_at
+            FROM quizzes q
+            JOIN quiz_shares qs ON qs.quiz_id = q.id
+            JOIN team_members tm ON tm.team_id = qs.team_id
+            WHERE tm.user_id = %s
+            ORDER BY q.created_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    return {
+        "quizzes": [
+            {
+                "id": str(row["id"]),
+                "document_ids": [str(d) for d in row["document_ids"]],
+                "created_at": row["created_at"].isoformat(),
+            }
+            for row in rows
         ]
     }
 
@@ -326,8 +355,8 @@ def list_attempts(user_id: str = Depends(get_current_user_id)):
 def get_quiz(quiz_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         quiz_row = conn.execute(
-            "SELECT id, document_ids, created_at FROM quizzes WHERE id = %s AND user_id = %s",
-            (quiz_id, user_id),
+            f"SELECT id, document_ids, created_at FROM quizzes q WHERE q.id = %s AND {QUIZ_ACCESS_CLAUSE}",
+            (quiz_id, *access_params(user_id)),
         ).fetchone()
         if quiz_row is None:
             raise HTTPException(status_code=404, detail="Quiz not found")
@@ -353,3 +382,52 @@ def get_quiz(quiz_id: str, user_id: str = Depends(get_current_user_id)):
             for r in question_rows
         ],
     }
+
+
+class ShareRequest(BaseModel):
+    team_id: str
+
+
+@router.post("/{quiz_id}/share", status_code=201)
+def share_quiz(quiz_id: str, body: ShareRequest, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        quiz_row = conn.execute(
+            "SELECT id FROM quizzes WHERE id = %s AND user_id = %s",
+            (quiz_id, user_id),
+        ).fetchone()
+        if quiz_row is None:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+        if not is_team_member(conn, body.team_id, user_id):
+            raise HTTPException(status_code=403, detail="You are not a member of this team")
+
+        row = conn.execute(
+            """
+            INSERT INTO quiz_shares (quiz_id, team_id, shared_by)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (quiz_id, team_id) DO NOTHING
+            RETURNING shared_at
+            """,
+            (quiz_id, body.team_id, user_id),
+        ).fetchone()
+        if row is None:
+            row = conn.execute(
+                "SELECT shared_at FROM quiz_shares WHERE quiz_id = %s AND team_id = %s",
+                (quiz_id, body.team_id),
+            ).fetchone()
+
+    return {"quiz_id": quiz_id, "team_id": body.team_id, "shared_at": row["shared_at"].isoformat()}
+
+
+@router.delete("/{quiz_id}/share/{team_id}", status_code=204)
+def unshare_quiz(quiz_id: str, team_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        quiz_row = conn.execute(
+            "SELECT id FROM quizzes WHERE id = %s AND user_id = %s",
+            (quiz_id, user_id),
+        ).fetchone()
+        if quiz_row is None:
+            raise HTTPException(status_code=404, detail="Quiz not found")
+        conn.execute(
+            "DELETE FROM quiz_shares WHERE quiz_id = %s AND team_id = %s",
+            (quiz_id, team_id),
+        )

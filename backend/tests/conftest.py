@@ -35,9 +35,11 @@ def apply_migrations():
     chat_general_knowledge_sql = (
         BACKEND_ROOT / "migrations" / "0005_chat_general_knowledge.sql"
     ).read_text()
+    teams_sql = (BACKEND_ROOT / "migrations" / "0006_teams.sql").read_text()
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
         conn.execute(
-            "DROP TABLE IF EXISTS quiz_attempts, quiz_questions, quizzes, "
+            "DROP TABLE IF EXISTS quiz_shares, document_shares, team_members, teams, profiles, "
+            "quiz_attempts, quiz_questions, quizzes, "
             "chat_messages, chat_sessions, chunks, documents CASCADE"
         )
         conn.execute(stub_sql)
@@ -46,6 +48,7 @@ def apply_migrations():
         conn.execute(quiz_sql)
         conn.execute(search_fts_sql)
         conn.execute(chat_general_knowledge_sql)
+        conn.execute(teams_sql)
     yield
 
 
@@ -54,6 +57,7 @@ def clean_tables():
     yield
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
         conn.execute(
-            "TRUNCATE quiz_attempts, quiz_questions, quizzes, "
+            "TRUNCATE quiz_shares, document_shares, team_members, teams, "
+            "quiz_attempts, quiz_questions, quizzes, "
             "chat_messages, chat_sessions, chunks, documents CASCADE"
         )

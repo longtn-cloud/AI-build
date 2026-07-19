@@ -2,6 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from app.auth import get_current_user_id
 from app.db import get_conn
+from app.services.access import DOCUMENT_ACCESS_CLAUSE, access_params
 from app.services.embeddings import embed_query
 
 router = APIRouter(tags=["search"])
@@ -34,8 +35,8 @@ def search(
 
     query_embedding = embed_query(q)
 
-    filters_sql = "d.user_id = %s"
-    filter_params: list = [user_id]
+    filters_sql = DOCUMENT_ACCESS_CLAUSE
+    filter_params: list = list(access_params(user_id))
 
     if file_type is not None:
         types = FILE_TYPE_GROUPS[file_type]

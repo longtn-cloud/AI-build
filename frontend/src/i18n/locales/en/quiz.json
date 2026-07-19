@@ -35,5 +35,8 @@
   "retakeQuiz": "Retake quiz",
   "backToQuizzesButton": "Back to quizzes",
   "takeQuiz": "Take a quiz",
-  "retake": "Retake"
+  "retake": "Retake",
+  "share": "Share",
+  "tabs": { "mine": "My Attempts", "shared": "Shared with me" },
+  "takeSharedQuiz": "Take quiz"
 }

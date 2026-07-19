@@ -6,7 +6,8 @@
     "search": "Search",
     "chat": "AI Assistant",
     "quiz": "Quiz",
-    "quizHistory": "Quiz History"
+    "quizHistory": "Quiz History",
+    "teams": "Teams"
   },
   "uploadDocuments": "Upload documents",
   "signOut": "Sign out",
@@ -17,10 +18,12 @@
     "search": { "title": "Search", "subtitle": "Find passages across every document" },
     "chat": { "title": "AI Assistant", "subtitle": "Grounded answers from your documents" },
     "quiz": { "title": "Quizzes", "subtitle": "Test yourself on your material" },
-    "quizHistory": { "title": "Quiz History", "subtitle": "Every attempt you have taken" }
+    "quizHistory": { "title": "Quiz History", "subtitle": "Every attempt you have taken" },
+    "teams": { "title": "Teams", "subtitle": "Manage your teams and members" }
   },
   "languageSwitcher": {
     "vietnamese": "Tiếng Việt",
     "english": "English"
-  }
+  },
+  "share": { "title": "Share to team", "close": "Close" }
 }

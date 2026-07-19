@@ -32,5 +32,7 @@
   "deleteConfirm": "Xóa {{filename}}?",
   "previewFailed": "Tải bản xem trước thất bại.",
   "close": "Đóng",
-  "previewTitle": "Xem trước tài liệu"
+  "previewTitle": "Xem trước tài liệu",
+  "share": "Chia sẻ",
+  "tabs": { "mine": "Tài liệu của tôi", "shared": "Được chia sẻ" }
 }

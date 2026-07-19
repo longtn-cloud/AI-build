@@ -9,13 +9,20 @@ vi.mock('../../src/lib/api', () => ({
   renameDocument: vi.fn(),
   deleteDocument: vi.fn(),
   getDownloadUrl: vi.fn(),
+  shareDocument: vi.fn(),
+  unshareDocument: vi.fn(),
+  listSharedDocuments: vi.fn(),
+  listTeams: vi.fn(),
 }))
 
 import {
   deleteDocument,
   getDownloadUrl,
   listDocuments,
+  listSharedDocuments,
+  listTeams,
   renameDocument,
+  shareDocument,
   uploadDocument,
 } from '../../src/lib/api'
 import { DocumentsPage } from '../../src/pages/DocumentsPage'
@@ -26,6 +33,7 @@ const readyDoc = {
   file_type: 'pdf',
   status: 'ready' as const,
   uploaded_at: '2026-01-01T00:00:00Z',
+  shared_team_ids: [] as string[],
 }
 
 describe('DocumentsPage', () => {
@@ -47,6 +55,7 @@ describe('DocumentsPage', () => {
       file_type: 'txt',
       status: 'uploading',
       uploaded_at: '2026-01-01T00:00:00Z',
+      shared_team_ids: [],
     })
 
     renderWithQueryClient(<DocumentsPage />)
@@ -72,6 +81,7 @@ describe('DocumentsPage', () => {
       file_type: 'pdf',
       status: 'uploading',
       uploaded_at: '2026-01-01T00:00:00Z',
+      shared_team_ids: [],
     })
 
     renderWithQueryClient(<DocumentsPage />)
@@ -199,5 +209,62 @@ describe('DocumentsPage', () => {
     } finally {
       vi.useRealTimers()
     }
+  })
+
+  it('opens the share modal and shares a document with a team', async () => {
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
+    ;(shareDocument as any).mockResolvedValue(undefined)
+    ;(listTeams as any).mockResolvedValue([])
+
+    renderWithQueryClient(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chia sẻ' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Chia sẻ với nhóm')).toBeInTheDocument()
+    })
+  })
+
+  it('reflects updated shared_team_ids in the share modal after toggling a team', async () => {
+    ;(listDocuments as any)
+      .mockResolvedValueOnce([readyDoc])
+      .mockResolvedValueOnce([{ ...readyDoc, shared_team_ids: ['team-1'] }])
+    ;(shareDocument as any).mockResolvedValue(undefined)
+    ;(listTeams as any).mockResolvedValue([{ id: 'team-1', name: 'Team One' }])
+
+    renderWithQueryClient(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chia sẻ' }))
+    await waitFor(() => screen.getByText('Chia sẻ với nhóm'))
+
+    const checkbox = (await waitFor(() =>
+      screen.getByRole('checkbox', { name: 'Team One' }),
+    )) as HTMLInputElement
+    expect(checkbox.checked).toBe(false)
+
+    fireEvent.click(checkbox)
+
+    await waitFor(() => {
+      expect(checkbox.checked).toBe(true)
+    })
+  })
+
+  it('shows the Shared with me tab with shared documents', async () => {
+    ;(listDocuments as any).mockResolvedValue([readyDoc])
+    ;(listSharedDocuments as any).mockResolvedValue([
+      { ...readyDoc, id: '2', filename: 'shared.pdf', user_id: 'other-user' },
+    ])
+
+    renderWithQueryClient(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByText('Được chia sẻ'))
+
+    await waitFor(() => {
+      expect(screen.getByText('shared.pdf')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('report.pdf')).not.toBeInTheDocument()
   })
 })

@@ -33,7 +33,9 @@ export type Document = {
 
 // The list endpoint omits extracted_text and storage_path (not used by the list UI) to
 // avoid shipping every document's full extracted text on every list call.
-export type DocumentListItem = Omit<Document, 'extracted_text' | 'storage_path'>
+export type DocumentListItem = Omit<Document, 'extracted_text' | 'storage_path'> & {
+  shared_team_ids: string[]
+}
 
 export async function listDocuments(): Promise<DocumentListItem[]> {
   const res = await apiFetch(`${API_BASE}/documents`, { headers: await authHeader() })
@@ -236,6 +238,7 @@ export type QuizAttemptSummary = {
   total_questions: number
   completed_at: string
   document_filenames: string[]
+  shared_team_ids: string[]
 }
 
 export async function listQuizAttempts(): Promise<QuizAttemptSummary[]> {
@@ -245,4 +248,118 @@ export async function listQuizAttempts(): Promise<QuizAttemptSummary[]> {
   if (!res.ok) throw new Error('Failed to load quiz history')
   const data = await res.json()
   return data.attempts
+}
+
+export type Team = {
+  id: string
+  name: string
+  role: 'admin' | 'member'
+  created_at: string
+}
+
+export async function createTeam(name: string): Promise<Team> {
+  const res = await apiFetch(`${API_BASE}/teams`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name }),
+  })
+  if (!res.ok) throw new Error('Failed to create team')
+  return res.json()
+}
+
+export async function listTeams(): Promise<Team[]> {
+  const res = await apiFetch(`${API_BASE}/teams`, { headers: await authHeader() })
+  if (!res.ok) throw new Error('Failed to list teams')
+  return res.json()
+}
+
+export type TeamMember = {
+  user_id: string
+  email: string
+  role: 'admin' | 'member'
+  added_at: string
+}
+
+export async function listTeamMembers(teamId: string): Promise<TeamMember[]> {
+  const res = await apiFetch(`${API_BASE}/teams/${teamId}/members`, { headers: await authHeader() })
+  if (!res.ok) throw new Error('Failed to list team members')
+  return res.json()
+}
+
+export type UserSearchResult = { user_id: string; email: string }
+
+export async function searchTeamMembers(teamId: string, query: string): Promise<UserSearchResult[]> {
+  const res = await apiFetch(
+    `${API_BASE}/teams/${teamId}/members/search?q=${encodeURIComponent(query)}`,
+    { headers: await authHeader() },
+  )
+  if (!res.ok) throw new Error('Failed to search users')
+  return res.json()
+}
+
+export async function addTeamMember(teamId: string, userId: string): Promise<TeamMember> {
+  const res = await apiFetch(`${API_BASE}/teams/${teamId}/members`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ user_id: userId }),
+  })
+  if (!res.ok) throw new Error('Failed to add team member')
+  return res.json()
+}
+
+export async function removeTeamMember(teamId: string, userId: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/teams/${teamId}/members/${userId}`, {
+    method: 'DELETE',
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to remove team member')
+}
+
+export async function shareDocument(documentId: string, teamId: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/documents/${documentId}/share`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team_id: teamId }),
+  })
+  if (!res.ok) throw new Error('Failed to share document')
+}
+
+export async function unshareDocument(documentId: string, teamId: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/documents/${documentId}/share/${teamId}`, {
+    method: 'DELETE',
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to unshare document')
+}
+
+export async function listSharedDocuments(): Promise<DocumentListItem[]> {
+  const res = await apiFetch(`${API_BASE}/documents/shared`, { headers: await authHeader() })
+  if (!res.ok) throw new Error('Failed to list shared documents')
+  return res.json()
+}
+
+export async function shareQuiz(quizId: string, teamId: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/quiz/${quizId}/share`, {
+    method: 'POST',
+    headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ team_id: teamId }),
+  })
+  if (!res.ok) throw new Error('Failed to share quiz')
+}
+
+export async function unshareQuiz(quizId: string, teamId: string): Promise<void> {
+  const res = await apiFetch(`${API_BASE}/quiz/${quizId}/share/${teamId}`, {
+    method: 'DELETE',
+    headers: await authHeader(),
+  })
+  if (!res.ok) throw new Error('Failed to unshare quiz')
+}
+
+export type SharedQuiz = { id: string; document_ids: string[]; created_at: string }
+
+export async function listSharedQuizzes(): Promise<SharedQuiz[]> {
+  const res = await apiFetch(`${API_BASE}/quiz/shared`, { headers: await authHeader() })
+  if (!res.ok) throw new Error('Failed to list shared quizzes')
+  const data = await res.json()
+  return data.quizzes
 }

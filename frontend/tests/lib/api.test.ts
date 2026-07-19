@@ -10,7 +10,9 @@ vi.mock('../../src/lib/supabaseClient', () => ({
 }))
 
 import {
+  addTeamMember,
   createChatSession,
+  createTeam,
   deleteDocument,
   generateQuiz,
   getDownloadUrl,
@@ -18,10 +20,20 @@ import {
   getQuiz,
   listDocuments,
   listQuizAttempts,
+  listSharedDocuments,
+  listSharedQuizzes,
+  listTeamMembers,
+  listTeams,
+  removeTeamMember,
   renameDocument,
   search,
+  searchTeamMembers,
   sendChatMessage,
+  shareDocument,
+  shareQuiz,
   submitQuizAttempt,
+  unshareDocument,
+  unshareQuiz,
   uploadDocument,
 } from '../../src/lib/api'
 import { supabase } from '../../src/lib/supabaseClient'
@@ -347,5 +359,143 @@ describe('api client', () => {
     await expect(listQuizAttempts()).rejects.toThrow('Failed to load quiz history')
 
     expect(supabase.auth.signOut).toHaveBeenCalled()
+  })
+
+  it('createTeam sends a POST with the team name', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ id: 't1', name: 'Eng', role: 'admin', created_at: '2026-01-01T00:00:00Z' }),
+    })
+
+    await createTeam('Eng')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams'),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ name: 'Eng' }) }),
+    )
+  })
+
+  it('listTeams sends an authorized GET request', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => [] })
+
+    await listTeams()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
+  })
+
+  it('listTeamMembers sends a GET to the team members endpoint', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => [] })
+
+    await listTeamMembers('t1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams/t1/members'),
+      expect.anything(),
+    )
+  })
+
+  it('searchTeamMembers sends a GET with the query string', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => [] })
+
+    await searchTeamMembers('t1', 'ann')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams/t1/members/search?q=ann'),
+      expect.anything(),
+    )
+  })
+
+  it('addTeamMember sends a POST with the user id', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ user_id: 'u1', email: 'a@example.com', role: 'member', added_at: '2026-01-01T00:00:00Z' }),
+    })
+
+    await addTeamMember('t1', 'u1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams/t1/members'),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ user_id: 'u1' }) }),
+    )
+  })
+
+  it('removeTeamMember sends a DELETE request', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    await removeTeamMember('t1', 'u1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/teams/t1/members/u1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('shareDocument sends a POST with the team id', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    await shareDocument('d1', 't1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/d1/share'),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ team_id: 't1' }) }),
+    )
+  })
+
+  it('unshareDocument sends a DELETE request', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    await unshareDocument('d1', 't1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/d1/share/t1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('listSharedDocuments sends a GET to /documents/shared', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => [] })
+
+    await listSharedDocuments()
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/documents/shared'),
+      expect.anything(),
+    )
+  })
+
+  it('shareQuiz sends a POST with the team id', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    await shareQuiz('q1', 't1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/q1/share'),
+      expect.objectContaining({ method: 'POST', body: JSON.stringify({ team_id: 't1' }) }),
+    )
+  })
+
+  it('unshareQuiz sends a DELETE request', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => ({}) })
+
+    await unshareQuiz('q1', 't1')
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/quiz/q1/share/t1'),
+      expect.objectContaining({ method: 'DELETE' }),
+    )
+  })
+
+  it('listSharedQuizzes sends a GET to /quiz/shared and unwraps quizzes', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ quizzes: [{ id: 'q1', document_ids: [], created_at: '2026-01-01T00:00:00Z' }] }),
+    })
+
+    const result = await listSharedQuizzes()
+
+    expect(result).toEqual([{ id: 'q1', document_ids: [], created_at: '2026-01-01T00:00:00Z' }])
   })
 })

@@ -6,7 +6,8 @@
     "search": "Tìm kiếm",
     "chat": "Trợ lý AI",
     "quiz": "Đố vui",
-    "quizHistory": "Lịch sử đố vui"
+    "quizHistory": "Lịch sử đố vui",
+    "teams": "Nhóm"
   },
   "uploadDocuments": "Tải lên tài liệu",
   "signOut": "Đăng xuất",
@@ -17,10 +18,12 @@
     "search": { "title": "Tìm kiếm", "subtitle": "Tìm đoạn văn trong mọi tài liệu" },
     "chat": { "title": "Trợ lý AI", "subtitle": "Câu trả lời dựa trên tài liệu của bạn" },
     "quiz": { "title": "Đố vui", "subtitle": "Tự kiểm tra kiến thức của bạn" },
-    "quizHistory": { "title": "Lịch sử đố vui", "subtitle": "Mọi lượt làm bài bạn đã thực hiện" }
+    "quizHistory": { "title": "Lịch sử đố vui", "subtitle": "Mọi lượt làm bài bạn đã thực hiện" },
+    "teams": { "title": "Nhóm", "subtitle": "Quản lý nhóm và thành viên của bạn" }
   },
   "languageSwitcher": {
     "vietnamese": "Tiếng Việt",
     "english": "English"
-  }
+  },
+  "share": { "title": "Chia sẻ với nhóm", "close": "Đóng" }
 }

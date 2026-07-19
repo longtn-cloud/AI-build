@@ -1,0 +1,11 @@
+{
+  "createPlaceholder": "Tên nhóm mới",
+  "createTeam": "Tạo nhóm",
+  "searchPlaceholder": "Tìm theo email…",
+  "addMember": "Thêm",
+  "removeMember": "Xoá",
+  "roles": { "admin": "Quản trị viên", "member": "Thành viên" },
+  "errors": {
+    "loadTeams": "Tải danh sách nhóm thất bại, vui lòng thử lại"
+  }
+}

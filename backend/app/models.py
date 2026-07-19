@@ -31,6 +31,7 @@ class DocumentListItemOut(BaseModel):
     status: str
     error_reason: str | None = None
     uploaded_at: datetime
+    shared_team_ids: list[str] = []
 
     @field_validator("id", "user_id", mode="before")
     @classmethod
@@ -38,3 +39,10 @@ class DocumentListItemOut(BaseModel):
         if isinstance(value, UUID):
             return str(value)
         return value
+
+    @field_validator("shared_team_ids", mode="before")
+    @classmethod
+    def _stringify_team_ids(cls, value):
+        if value is None:
+            return []
+        return [str(v) for v in value]

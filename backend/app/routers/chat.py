@@ -7,6 +7,7 @@ from psycopg.types.json import Json
 
 from app.auth import get_current_user_id
 from app.db import get_conn
+from app.services.access import DOCUMENT_ACCESS_CLAUSE, access_params
 from app.services.embeddings import embed_query
 from app.services.llm import answer_from_chunks, answer_with_web_search, llm_error_response
 
@@ -102,7 +103,7 @@ def send_message(
             query_embedding = embed_query(body.content)
             with get_conn() as conn:
                 chunk_rows = conn.execute(
-                    """
+                    f"""
                     SELECT * FROM (
                         SELECT
                             d.id AS document_id,
@@ -113,13 +114,13 @@ def send_message(
                             count(*) OVER (PARTITION BY c.document_id) AS total_chunks
                         FROM chunks c
                         JOIN documents d ON d.id = c.document_id
-                        WHERE d.user_id = %s
+                        WHERE {DOCUMENT_ACCESS_CLAUSE}
                     ) sub
                     WHERE sub.score >= %s
                     ORDER BY sub.score DESC
                     LIMIT 10
                     """,
-                    (query_embedding, user_id, MIN_SIMILARITY_THRESHOLD),
+                    (query_embedding, *access_params(user_id), MIN_SIMILARITY_THRESHOLD),
                 ).fetchall()
 
             chunks = [
