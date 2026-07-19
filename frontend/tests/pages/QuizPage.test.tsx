@@ -115,7 +115,7 @@ describe('QuizPage', () => {
     renderQuizPage()
 
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Create quiz' })).toBeInTheDocument()
+      expect(screen.getByRole('button', { name: 'Tạo bài đố vui' })).toBeInTheDocument()
     })
   })
 
@@ -124,8 +124,8 @@ describe('QuizPage', () => {
     ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
 
     await waitFor(() => {
       expect(screen.getByLabelText('policy.pdf')).toBeInTheDocument()
@@ -139,13 +139,13 @@ describe('QuizPage', () => {
     ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByRole('button', { name: '8' }))
-    fireEvent.click(screen.getByRole('button', { name: /Generate 8 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 8 câu hỏi/ }))
 
     await waitFor(() => {
       expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
@@ -155,13 +155,13 @@ describe('QuizPage', () => {
 
     fireEvent.click(screen.getByText('30 days'))
     expect(submitQuizAttempt).not.toHaveBeenCalled()
-    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Câu tiếp theo' }))
 
     await waitFor(() => {
       expect(screen.getByText('What is covered?')).toBeInTheDocument()
     })
     fireEvent.click(screen.getByText('Data breaches'))
-    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }))
 
     await waitFor(() => {
       expect(screen.getByText('1', { selector: 'strong' })).toBeInTheDocument()
@@ -178,17 +178,17 @@ describe('QuizPage', () => {
     ;(generateQuiz as any).mockResolvedValue({ ...QUIZ, requested_count: 10, actual_count: 2 })
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
-    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 10 câu hỏi/ }))
 
     await waitFor(() => {
       expect(
         screen.getByText(
-          "Generated 2 of the requested 10 questions — the selected documents didn't have enough distinct content for more.",
+          "Đã tạo 2 trên 10 câu hỏi yêu cầu — các tài liệu đã chọn không có đủ nội dung riêng biệt để tạo thêm.",
         ),
       ).toBeInTheDocument()
     })
@@ -200,15 +200,15 @@ describe('QuizPage', () => {
     ;(generateQuiz as any).mockRejectedValue(new Error('Failed to generate quiz'))
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
 
     fireEvent.click(screen.getByLabelText('policy.pdf'))
-    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 10 câu hỏi/ }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Failed to generate quiz, try again')
+      expect(screen.getByRole('alert')).toHaveTextContent('Tạo bài đố vui thất bại, vui lòng thử lại')
     })
   })
 
@@ -217,11 +217,11 @@ describe('QuizPage', () => {
     ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
 
-    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 10 câu hỏi/ }))
 
     expect(generateQuiz).not.toHaveBeenCalled()
   })
@@ -233,19 +233,19 @@ describe('QuizPage', () => {
     ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByLabelText('policy.pdf'))
-    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 10 câu hỏi/ }))
     await waitFor(() => screen.getByText('What is the refund window?'))
 
     fireEvent.click(screen.getByText('7 days'))
     fireEvent.click(screen.getByText('30 days'))
-    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Câu tiếp theo' }))
     await waitFor(() => screen.getByText('What is covered?'))
     fireEvent.click(screen.getByText('Service outages'))
-    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }))
 
     await waitFor(() => {
       expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [
@@ -262,25 +262,25 @@ describe('QuizPage', () => {
     ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
 
     renderQuizPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Tạo bài đố vui' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tạo bài đố vui' }))
     await waitFor(() => screen.getByLabelText('policy.pdf'))
     fireEvent.click(screen.getByLabelText('policy.pdf'))
-    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    fireEvent.click(screen.getByRole('button', { name: /Tạo 10 câu hỏi/ }))
     await waitFor(() => screen.getByText('What is the refund window?'))
 
-    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    expect(screen.getByRole('button', { name: 'Trước' })).toBeDisabled()
     fireEvent.click(screen.getByText('30 days'))
-    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Câu tiếp theo' }))
     await waitFor(() => screen.getByText('What is covered?'))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Trước' }))
     await waitFor(() => screen.getByText('What is the refund window?'))
     fireEvent.click(screen.getByText('60 days'))
-    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Câu tiếp theo' }))
     await waitFor(() => screen.getByText('What is covered?'))
     fireEvent.click(screen.getByText('Data breaches'))
-    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Hoàn thành' }))
 
     await waitFor(() => {
       expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [

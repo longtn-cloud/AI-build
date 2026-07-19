@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { useNavigate, useParams } from 'react-router-dom'
+import { Trans, useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -12,6 +13,7 @@ const COUNT_OPTIONS = [5, 8, 10, 15]
 type View = 'list' | 'config' | 'taking' | 'result'
 
 export function QuizPage() {
+  const { t } = useTranslation('quiz')
   const [view, setView] = useState<View>('list')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [numQuestions, setNumQuestions] = useState(10)
@@ -121,15 +123,15 @@ export function QuizPage() {
     setQIndex(qIndex + 1)
   }
 
-  const generateError = generateMutation.isError ? 'Failed to generate quiz, try again' : null
+  const generateError = generateMutation.isError ? t('errors.generateQuiz') : null
 
   if (retakeQuizId && !quiz) {
     return (
       <div className="mx-auto max-w-[680px] px-8 pb-12 pt-7">
         {retakeQuery.isError ? (
-          <Alert>Failed to load quiz, try again</Alert>
+          <Alert>{t('errors.loadQuiz')}</Alert>
         ) : (
-          <p className="text-sm text-muted">Loading quiz…</p>
+          <p className="text-sm text-muted">{t('loadingQuiz')}</p>
         )}
       </div>
     )
@@ -140,31 +142,28 @@ export function QuizPage() {
       <div className="mx-auto max-w-[980px] px-8 pb-12 pt-7">
         <div className="mb-7 flex gap-4">
           <div className="flex-1 rounded-[14px] border border-line bg-white p-5">
-            <div className="mb-2 text-sm font-semibold text-muted">Quizzes taken</div>
+            <div className="mb-2 text-sm font-semibold text-muted">{t('stats.taken')}</div>
             <div className="text-3xl font-extrabold tracking-tight">{stats.count}</div>
           </div>
           <div className="flex-1 rounded-[14px] border border-line bg-white p-5">
-            <div className="mb-2 text-sm font-semibold text-muted">Average score</div>
+            <div className="mb-2 text-sm font-semibold text-muted">{t('stats.avgScore')}</div>
             <div className="text-3xl font-extrabold tracking-tight text-accent">{stats.avg}%</div>
           </div>
         </div>
 
         <div className="mb-7 flex items-center gap-5 rounded-2xl bg-gradient-to-r from-sidebar to-sidebar-panel p-6">
           <div className="flex-1">
-            <h2 className="mb-1.5 text-lg font-extrabold text-white">Generate a new quiz</h2>
-            <p className="text-sm leading-relaxed text-[#AEBBC2]">
-              Pick one or more documents and we&apos;ll build multiple-choice questions grounded
-              strictly in their content.
-            </p>
+            <h2 className="mb-1.5 text-lg font-extrabold text-white">{t('generateTitle')}</h2>
+            <p className="text-sm leading-relaxed text-[#AEBBC2]">{t('generateBody')}</p>
           </div>
-          <Button onClick={() => setView('config')}>Create quiz</Button>
+          <Button onClick={() => setView('config')}>{t('createQuiz')}</Button>
         </div>
 
         <div className="mb-3.5 text-xs font-bold uppercase tracking-wide text-faint">
-          Recent attempts
+          {t('recentAttempts')}
         </div>
         {attempts.length === 0 ? (
-          <p className="text-sm text-muted">No quiz attempts yet</p>
+          <p className="text-sm text-muted">{t('noAttempts')}</p>
         ) : (
           <div className="flex flex-col gap-2.5">
             {attempts.map((a) => (
@@ -174,7 +173,7 @@ export function QuizPage() {
               >
                 <div className="flex-1 text-sm font-bold">{a.document_filenames.join(', ')}</div>
                 <div className="text-sm font-bold">
-                  {a.score} / {a.total_questions}
+                  {t('scoreOf', { score: a.score, total: a.total_questions })}
                 </div>
               </div>
             ))}
@@ -188,16 +187,16 @@ export function QuizPage() {
     return (
       <div className="mx-auto max-w-[720px] px-8 pb-12 pt-7">
         <button onClick={() => setView('list')} className="mb-4 text-sm font-semibold text-muted">
-          ← Back to quizzes
+          {t('backToQuizzes')}
         </button>
-        <h2 className="mb-5 text-xl font-extrabold tracking-tight">Generate a quiz</h2>
+        <h2 className="mb-5 text-xl font-extrabold tracking-tight">{t('generateHeading')}</h2>
         {generateError && (
           <div className="mb-4">
             <Alert>{generateError}</Alert>
           </div>
         )}
 
-        <div className="mb-2.5 text-xs font-bold text-muted">1 · Choose source documents</div>
+        <div className="mb-2.5 text-xs font-bold text-muted">{t('step1')}</div>
         <div className="mb-6 flex flex-col gap-2">
           {readyDocuments.map((doc) => {
             const checked = selectedIds.includes(doc.id)
@@ -223,7 +222,7 @@ export function QuizPage() {
           })}
         </div>
 
-        <div className="mb-2.5 text-xs font-bold text-muted">2 · Number of questions</div>
+        <div className="mb-2.5 text-xs font-bold text-muted">{t('step2')}</div>
         <div className="mb-8 flex gap-2">
           {COUNT_OPTIONS.map((n) => (
             <button
@@ -241,7 +240,7 @@ export function QuizPage() {
         </div>
 
         <Button onClick={handleGenerate} className="w-full" disabled={generateMutation.isPending}>
-          Generate {numQuestions} questions
+          {t('generateButton', { count: numQuestions })}
         </Button>
       </div>
     )
@@ -254,11 +253,11 @@ export function QuizPage() {
       <div className="mx-auto max-w-[680px] px-8 pb-12 pt-7">
         <div className="mb-2 flex items-center gap-3.5">
           <button onClick={goToList} className="text-sm font-semibold text-faint">
-            ✕ Exit
+            {t('exit')}
           </button>
           <span className="flex-1" />
           <span className="text-sm font-semibold text-muted">
-            Question {qIndex + 1} of {quiz.questions.length}
+            {t('questionOf', { index: qIndex + 1, total: quiz.questions.length })}
           </span>
         </div>
         <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-line">
@@ -272,8 +271,7 @@ export function QuizPage() {
 
         {qIndex === 0 && quiz.actual_count < quiz.requested_count && (
           <p className="mb-4 text-sm text-warn">
-            Generated {quiz.actual_count} of the requested {quiz.requested_count} questions — the
-            selected documents didn&apos;t have enough distinct content for more.
+            {t('fewerGenerated', { actual: quiz.actual_count, requested: quiz.requested_count })}
           </p>
         )}
 
@@ -307,10 +305,10 @@ export function QuizPage() {
 
         <div className="mt-5 flex justify-between">
           <Button variant="secondary" onClick={handlePrevious} disabled={qIndex === 0}>
-            Previous
+            {t('previous')}
           </Button>
           <Button onClick={handleNext} disabled={!revealed}>
-            {qIndex >= quiz.questions.length - 1 ? 'Finish quiz' : 'Next question'}
+            {qIndex >= quiz.questions.length - 1 ? t('finishQuiz') : t('nextQuestion')}
           </Button>
         </div>
       </div>
@@ -325,17 +323,20 @@ export function QuizPage() {
           <span className="text-3xl font-extrabold tracking-tight">{result.score}</span>
         </div>
         <h2 className="mb-2 text-2xl font-extrabold tracking-tight">
-          {pct >= 75 ? 'Great work!' : pct >= 50 ? 'Nice effort' : 'Keep practicing'}
+          {pct >= 75 ? t('result.great') : pct >= 50 ? t('result.nice') : t('result.keep')}
         </h2>
         <p className="mb-6 text-[15px] text-muted">
-          You answered <strong className="text-ink">{result.score}</strong> of{' '}
-          {result.total_questions} questions correctly.
+          <Trans
+            i18nKey="quiz:resultBody"
+            values={{ score: result.score, total: result.total_questions }}
+            components={{ strong: <strong className="text-ink" /> }}
+          />
         </p>
         <div className="flex justify-center gap-3">
           <Button variant="secondary" onClick={() => setView('config')}>
-            Retake quiz
+            {t('retakeQuiz')}
           </Button>
-          <Button onClick={goToList}>Back to quizzes</Button>
+          <Button onClick={goToList}>{t('backToQuizzesButton')}</Button>
         </div>
       </div>
     )
