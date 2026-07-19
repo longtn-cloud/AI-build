@@ -7,7 +7,9 @@ def chunk_text(text: str, chunk_size: int = 1000, overlap: int = 150) -> list[st
     start = 0
     while start < len(text):
         end = start + chunk_size
-        chunks.append(text[start:end])
+        piece = text[start:end]
+        if piece.strip():
+            chunks.append(piece)
         if end >= len(text):
             break
         start = end - overlap

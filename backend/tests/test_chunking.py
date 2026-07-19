@@ -20,3 +20,13 @@ def test_long_text_splits_into_overlapping_chunks():
     # second chunk starts 150 chars before the end of the first
     assert result[1] == text[850:1850]
     assert result[2] == text[1700:2500]
+
+
+def test_drops_whitespace_only_chunks():
+    text = "A" * 100 + " " * 3000 + "B" * 100
+
+    result = chunk_text(text, chunk_size=1000, overlap=150)
+
+    assert all(chunk.strip() for chunk in result)
+    assert result[0].startswith("A" * 100)
+    assert result[-1].endswith("B" * 100)
