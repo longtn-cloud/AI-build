@@ -7,6 +7,7 @@ from app.auth import get_current_user_id
 from app.config import settings
 from app.db import get_conn
 from app.models import DocumentListItemOut, DocumentOut
+from app.services.access import is_team_member
 from app.services.processing import process_document
 from app.services.storage import create_signed_url, delete_file, upload_file
 
@@ -52,7 +53,9 @@ def list_documents(user_id: str = Depends(get_current_user_id)):
         rows = conn.execute(
             """
             SELECT id, user_id, filename, file_type, status,
-                   error_reason, uploaded_at
+                   error_reason, uploaded_at,
+                   (SELECT array_agg(team_id) FROM document_shares WHERE document_id = documents.id)
+                       AS shared_team_ids
             FROM documents
             WHERE user_id = %s
             ORDER BY uploaded_at DESC
@@ -134,3 +137,70 @@ def get_preview(document_id: str, user_id: str = Depends(get_current_user_id)):
     if row["status"] != "ready":
         raise HTTPException(status_code=409, detail="Document is not ready yet")
     return {"text": row["extracted_text"]}
+
+
+class ShareRequest(BaseModel):
+    team_id: str
+
+
+@router.post("/{document_id}/share", status_code=201)
+def share_document(document_id: str, body: ShareRequest, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        doc_row = conn.execute(
+            "SELECT id FROM documents WHERE id = %s AND user_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+        if doc_row is None:
+            raise HTTPException(status_code=404, detail="Document not found")
+        if not is_team_member(conn, body.team_id, user_id):
+            raise HTTPException(status_code=403, detail="You are not a member of this team")
+
+        row = conn.execute(
+            """
+            INSERT INTO document_shares (document_id, team_id, shared_by)
+            VALUES (%s, %s, %s)
+            ON CONFLICT (document_id, team_id) DO NOTHING
+            RETURNING shared_at
+            """,
+            (document_id, body.team_id, user_id),
+        ).fetchone()
+        if row is None:
+            row = conn.execute(
+                "SELECT shared_at FROM document_shares WHERE document_id = %s AND team_id = %s",
+                (document_id, body.team_id),
+            ).fetchone()
+
+    return {"document_id": document_id, "team_id": body.team_id, "shared_at": row["shared_at"].isoformat()}
+
+
+@router.delete("/{document_id}/share/{team_id}", status_code=204)
+def unshare_document(document_id: str, team_id: str, user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        doc_row = conn.execute(
+            "SELECT id FROM documents WHERE id = %s AND user_id = %s",
+            (document_id, user_id),
+        ).fetchone()
+        if doc_row is None:
+            raise HTTPException(status_code=404, detail="Document not found")
+        conn.execute(
+            "DELETE FROM document_shares WHERE document_id = %s AND team_id = %s",
+            (document_id, team_id),
+        )
+
+
+@router.get("/shared", response_model=list[DocumentListItemOut])
+def list_shared_documents(user_id: str = Depends(get_current_user_id)):
+    with get_conn() as conn:
+        rows = conn.execute(
+            """
+            SELECT DISTINCT d.id, d.user_id, d.filename, d.file_type, d.status,
+                   d.error_reason, d.uploaded_at
+            FROM documents d
+            JOIN document_shares ds ON ds.document_id = d.id
+            JOIN team_members tm ON tm.team_id = ds.team_id
+            WHERE tm.user_id = %s
+            ORDER BY d.uploaded_at DESC
+            """,
+            (user_id,),
+        ).fetchall()
+    return rows
