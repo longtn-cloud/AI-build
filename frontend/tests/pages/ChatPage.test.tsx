@@ -153,4 +153,17 @@ describe('ChatPage', () => {
 
     expect(sendChatMessage).not.toHaveBeenCalled()
   })
+
+  it('shows an error and disables Send when chat session creation fails', async () => {
+    ;(createChatSession as any).mockRejectedValue(new Error('network error'))
+
+    renderChatPage()
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toHaveTextContent(
+        'Failed to start chat session, try refreshing the page',
+      )
+    })
+    expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+  })
 })

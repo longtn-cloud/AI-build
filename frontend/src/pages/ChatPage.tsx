@@ -40,6 +40,7 @@ export function ChatPage() {
   return (
     <div className="flex flex-col gap-6">
       <h1 className="font-display text-2xl font-semibold text-parchment">Chat</h1>
+      {sessionQuery.isError && <Alert>Failed to start chat session, try refreshing the page</Alert>}
       {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
       <ul className="space-y-3">
         {messages.map((message) => (
@@ -93,7 +94,7 @@ export function ChatPage() {
             />
             Search the web for this message
           </label>
-          <Button type="submit" disabled={sendMutation.isPending}>
+          <Button type="submit" disabled={sendMutation.isPending || !sessionQuery.data}>
             Send
           </Button>
         </div>
