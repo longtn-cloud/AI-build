@@ -81,6 +81,24 @@ def test_extracts_docx_paragraphs():
     assert "Second paragraph" in result
 
 
+def test_extracts_docx_table_content():
+    doc = DocxDocument()
+    doc.add_paragraph("Intro paragraph")
+    table = doc.add_table(rows=2, cols=2)
+    table.cell(0, 0).text = "Item"
+    table.cell(0, 1).text = "Price"
+    table.cell(1, 0).text = "Widget"
+    table.cell(1, 1).text = "$9.99"
+    buffer = io.BytesIO()
+    doc.save(buffer)
+
+    result = extract_text(buffer.getvalue(), "docx")
+
+    assert "Intro paragraph" in result
+    assert "Widget" in result
+    assert "$9.99" in result
+
+
 def test_unsupported_type_raises():
     with pytest.raises(ValueError):
         extract_text(b"data", "exe")
