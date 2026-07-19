@@ -30,7 +30,7 @@ def test_answer_from_chunks_calls_gemini_with_context_and_dynamic_thinking(monke
     _, kwargs = fake_client.models.generate_content.call_args
     assert kwargs["model"] == llm.MODEL
     assert kwargs["config"].thinking_config.thinking_budget == -1
-    assert kwargs["config"].system_instruction == llm.DOCUMENTS_SYSTEM_PROMPT
+    assert kwargs["config"].system_instruction == llm.DOCUMENTS_SYSTEM_PROMPT + " Respond in Vietnamese."
     assert kwargs["config"].tools[0].function_declarations == [llm.ANSWER_TOOL]
     tool_config = kwargs["config"].tool_config
     assert tool_config.function_calling_config.mode == "ANY"
@@ -57,7 +57,7 @@ def test_answer_from_chunks_uses_general_knowledge_prompt_when_no_chunks(monkeyp
 
     assert result == {"answer": "Paris is the capital of France.", "used_general_knowledge": True}
     _, kwargs = fake_client.models.generate_content.call_args
-    assert kwargs["config"].system_instruction == llm.GENERAL_KNOWLEDGE_SYSTEM_PROMPT
+    assert kwargs["config"].system_instruction == llm.GENERAL_KNOWLEDGE_SYSTEM_PROMPT + " Respond in Vietnamese."
     turn_text = kwargs["contents"][-1].parts[0].text
     assert turn_text == "What is the capital of France?"
     assert "Document passages" not in turn_text
@@ -196,3 +196,53 @@ def test_generate_quiz_questions_returns_empty_list_when_no_function_call(monkey
     result = llm.generate_quiz_questions([{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c"}], 5)
 
     assert result == []
+
+
+def test_answer_from_chunks_defaults_to_vietnamese_instruction(monkeypatch):
+    fake_client = MagicMock()
+    fake_call = MagicMock()
+    fake_call.name = "provide_answer"
+    fake_call.args = {"answer": "answer", "used_general_knowledge": False}
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    llm.answer_from_chunks("question", [])
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert "Vietnamese" in kwargs["config"].system_instruction
+
+
+def test_answer_from_chunks_uses_english_instruction_when_requested(monkeypatch):
+    fake_client = MagicMock()
+    fake_call = MagicMock()
+    fake_call.name = "provide_answer"
+    fake_call.args = {"answer": "answer", "used_general_knowledge": False}
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=[fake_call])
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    llm.answer_from_chunks("question", [], language="en")
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert "English" in kwargs["config"].system_instruction
+
+
+def test_answer_with_web_search_defaults_to_vietnamese_instruction(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = MagicMock(text="answer")
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    llm.answer_with_web_search("question")
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert "Vietnamese" in kwargs["config"].system_instruction
+
+
+def test_generate_quiz_questions_defaults_to_vietnamese_instruction(monkeypatch):
+    fake_client = MagicMock()
+    fake_client.models.generate_content.return_value = MagicMock(function_calls=None)
+    monkeypatch.setattr(llm, "_client", fake_client)
+
+    llm.generate_quiz_questions([{"document_id": "d", "filename": "f.txt", "chunk_index": 0, "total_chunks": 1, "content": "c"}], 5)
+
+    _, kwargs = fake_client.models.generate_content.call_args
+    assert "Vietnamese" in kwargs["config"].system_instruction

@@ -1,0 +1,26 @@
+{
+  "appName": "DigiAgent",
+  "tagline": "Knowledge Base",
+  "nav": {
+    "documents": "Documents",
+    "search": "Search",
+    "chat": "AI Assistant",
+    "quiz": "Quiz",
+    "quizHistory": "Quiz History"
+  },
+  "uploadDocuments": "Upload documents",
+  "signOut": "Sign out",
+  "topSearchLabel": "Search your documents",
+  "topSearchPlaceholder": "Search your documents…",
+  "pageInfo": {
+    "documents": { "title": "Documents", "subtitle": "Your indexed knowledge base" },
+    "search": { "title": "Search", "subtitle": "Find passages across every document" },
+    "chat": { "title": "AI Assistant", "subtitle": "Grounded answers from your documents" },
+    "quiz": { "title": "Quizzes", "subtitle": "Test yourself on your material" },
+    "quizHistory": { "title": "Quiz History", "subtitle": "Every attempt you have taken" }
+  },
+  "languageSwitcher": {
+    "vietnamese": "Tiếng Việt",
+    "english": "English"
+  }
+}

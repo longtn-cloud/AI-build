@@ -53,7 +53,7 @@ describe('QuizHistoryPage', () => {
     renderQuizHistoryPage()
 
     await waitFor(() => {
-      expect(screen.getByText('No quiz attempts yet')).toBeInTheDocument()
+      expect(screen.getByText('Chưa có lượt làm bài đố vui nào')).toBeInTheDocument()
     })
   })
 
@@ -63,7 +63,7 @@ describe('QuizHistoryPage', () => {
     renderQuizHistoryPage()
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Failed to load quiz history, try again')
+      expect(screen.getByRole('alert')).toHaveTextContent('Tải lịch sử đố vui thất bại, vui lòng thử lại')
     })
   })
 
@@ -80,8 +80,8 @@ describe('QuizHistoryPage', () => {
     ])
 
     renderQuizHistoryPage()
-    await waitFor(() => screen.getByRole('button', { name: 'Retake' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Retake' }))
+    await waitFor(() => screen.getByRole('button', { name: 'Làm lại' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Làm lại' }))
 
     await waitFor(() => {
       expect(screen.getByText('retake page for /quiz/quiz-1/retake')).toBeInTheDocument()

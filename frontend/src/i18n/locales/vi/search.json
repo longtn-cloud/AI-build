@@ -1,0 +1,21 @@
+{
+  "fileTypes": {
+    "all": "Tất cả loại",
+    "pdf": "PDF",
+    "docx": "DOCX",
+    "text": "Văn bản"
+  },
+  "recent": "Gần đây",
+  "inputLabel": "Tìm kiếm tài liệu của bạn",
+  "inputPlaceholder": "Tìm kiếm trong tất cả tài liệu của bạn…",
+  "searchButton": "Tìm kiếm",
+  "errors": {
+    "searchFailed": "Tìm kiếm thất bại, vui lòng thử lại"
+  },
+  "searching": "Đang tìm kiếm...",
+  "noResults": "Không tìm thấy kết quả",
+  "matchPercent": "Khớp {{pct}}%",
+  "passageOf": "đoạn {{index}} trên {{total}}",
+  "morePassages": "+{{count}} đoạn khác trong tài liệu này",
+  "loadMore": "Xem thêm"
+}

@@ -131,7 +131,7 @@ def test_send_message_answers_from_general_knowledge_when_nothing_clears_thresho
     assert body["assistant_message"]["citations"] == []
     assert body["assistant_message"]["used_web_search"] is False
     assert body["assistant_message"]["used_general_knowledge"] is True
-    answer_mock.assert_called_once_with("What is the capital of France?", [], [])
+    answer_mock.assert_called_once_with("What is the capital of France?", [], [], "vi")
 
 
 def test_send_message_flags_general_knowledge_when_chunks_empty_even_if_model_says_false(monkeypatch):
@@ -181,7 +181,7 @@ def test_send_message_with_web_search_skips_retrieval(monkeypatch):
     assert body["assistant_message"]["used_general_knowledge"] is False
     assert body["assistant_message"]["citations"] == []
     embed_mock.assert_not_called()
-    web_search_mock.assert_called_once_with("What's the weather in Paris?", [])
+    web_search_mock.assert_called_once_with("What's the weather in Paris?", [], "vi")
 
 
 def test_send_message_rejects_empty_content():
@@ -264,7 +264,7 @@ def test_send_message_excludes_other_users_chunks(monkeypatch):
 
     assert response.status_code == 201
     assert response.json()["assistant_message"]["content"] == "answer"
-    answer_mock.assert_called_once_with("hello", [], [])
+    answer_mock.assert_called_once_with("hello", [], [], "vi")
 
 
 def test_send_message_includes_prior_turns_as_history(monkeypatch):
@@ -320,3 +320,23 @@ def test_chat_messages_used_general_knowledge_defaults_to_false():
         ).fetchone()
 
     assert row["used_general_knowledge"] is False
+
+
+def test_send_message_passes_requested_language_to_llm(monkeypatch):
+    from app.routers import chat as chat_router
+
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    answer_mock = MagicMock(return_value={"answer": "answer", "used_general_knowledge": True})
+    monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
+
+    _, headers = _create_user()
+    session_id = _create_session(headers)
+
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "hello", "language": "en"},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    answer_mock.assert_called_once_with("hello", [], [], "en")

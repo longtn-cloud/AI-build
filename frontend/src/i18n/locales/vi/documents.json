@@ -1,0 +1,36 @@
+{
+  "status": {
+    "uploading": "Đang tải lên…",
+    "processing": "Đang xử lý…",
+    "ready": "Đã lập chỉ mục",
+    "failed": "Thất bại"
+  },
+  "filters": {
+    "all": "Tất cả",
+    "pdf": "PDF",
+    "docx": "Tài liệu",
+    "other": "Văn bản"
+  },
+  "errors": {
+    "upload": "Tải lên tài liệu thất bại",
+    "rename": "Đổi tên tài liệu thất bại",
+    "delete": "Xóa tài liệu thất bại",
+    "download": "Tải xuống tài liệu thất bại",
+    "load": "Tải danh sách tài liệu thất bại"
+  },
+  "uploadLabel": "Tải lên tài liệu",
+  "dragHint": "Kéo tệp vào đây, hoặc nhấp để chọn",
+  "emptyTitle": "Xây dựng kho kiến thức của bạn",
+  "emptyBody": "Tải lên tệp PDF, Word, văn bản hoặc Markdown. Chúng tôi sẽ lập chỉ mục từng đoạn để bạn có thể tìm kiếm, hỏi đáp và làm bài đố vui — tất cả đều dựa trên tài liệu của chính bạn.",
+  "documentCount": "{{count}} tài liệu",
+  "uploadedOn": "Tải lên {{date}}",
+  "preview": "Xem trước",
+  "download": "Tải xuống",
+  "rename": "Đổi tên",
+  "delete": "Xóa",
+  "renamePromptLabel": "Tên tệp mới",
+  "deleteConfirm": "Xóa {{filename}}?",
+  "previewFailed": "Tải bản xem trước thất bại.",
+  "close": "Đóng",
+  "previewTitle": "Xem trước tài liệu"
+}

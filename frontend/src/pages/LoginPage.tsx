@@ -1,5 +1,6 @@
 import { FormEvent, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
+import { useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -8,6 +9,7 @@ import { Input } from '../components/ui/Input'
 import { useAuth } from '../contexts/AuthContext'
 
 export function LoginPage() {
+  const { t } = useTranslation('auth')
   const { signIn } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
@@ -28,11 +30,11 @@ export function LoginPage() {
     <div className="flex min-h-screen items-center justify-center bg-app-bg px-4">
       <Card className="w-full max-w-sm">
         <form onSubmit={handleSubmit} className="space-y-4">
-          <h1 className="text-2xl font-extrabold tracking-tight text-ink">Log in</h1>
+          <h1 className="text-2xl font-extrabold tracking-tight text-ink">{t('login')}</h1>
           {error && <Alert>{error}</Alert>}
           <div className="space-y-1">
             <label htmlFor="email" className="block text-xs font-semibold uppercase tracking-wide text-muted">
-              Email
+              {t('email')}
             </label>
             <Input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />
           </div>
@@ -41,7 +43,7 @@ export function LoginPage() {
               htmlFor="password"
               className="block text-xs font-semibold uppercase tracking-wide text-muted"
             >
-              Password
+              {t('password')}
             </label>
             <Input
               id="password"
@@ -51,12 +53,12 @@ export function LoginPage() {
             />
           </div>
           <Button type="submit" className="w-full">
-            Log in
+            {t('login')}
           </Button>
           <p className="text-sm text-muted">
-            No account?{' '}
+            {t('noAccount')}{' '}
             <Link to="/signup" className="text-accent-hover hover:underline">
-              Sign up
+              {t('signUpLink')}
             </Link>
           </p>
         </form>

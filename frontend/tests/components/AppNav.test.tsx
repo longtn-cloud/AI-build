@@ -1,6 +1,6 @@
-import { render, screen, waitFor } from '@testing-library/react'
+import { render, screen, waitFor, fireEvent } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 
 vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
@@ -15,6 +15,7 @@ vi.mock('../../src/contexts/AuthContext', () => ({
 
 import { listDocuments } from '../../src/lib/api'
 import { AppNav } from '../../src/components/AppNav'
+import i18n from '../../src/i18n'
 import { renderWithQueryClient } from '../test-utils'
 
 function renderAppNav() {
@@ -26,15 +27,20 @@ function renderAppNav() {
 }
 
 describe('AppNav', () => {
-  it('renders links to Documents, Search, AI Assistant, Quiz, and Quiz History', () => {
+  afterEach(() => {
+    i18n.changeLanguage('vi')
+    window.localStorage.clear()
+  })
+
+  it('renders links to Documents, Search, AI Assistant, Quiz, and Quiz History in Vietnamese by default', () => {
     ;(listDocuments as any).mockResolvedValue([])
     renderAppNav()
 
-    expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute('href', '/documents')
-    expect(screen.getByRole('link', { name: 'Search' })).toHaveAttribute('href', '/search')
-    expect(screen.getByRole('link', { name: 'AI Assistant' })).toHaveAttribute('href', '/chat')
-    expect(screen.getByRole('link', { name: 'Quiz' })).toHaveAttribute('href', '/quiz')
-    expect(screen.getByRole('link', { name: 'Quiz History' })).toHaveAttribute(
+    expect(screen.getByRole('link', { name: 'Tài liệu' })).toHaveAttribute('href', '/documents')
+    expect(screen.getByRole('link', { name: 'Tìm kiếm' })).toHaveAttribute('href', '/search')
+    expect(screen.getByRole('link', { name: 'Trợ lý AI' })).toHaveAttribute('href', '/chat')
+    expect(screen.getByRole('link', { name: 'Đố vui' })).toHaveAttribute('href', '/quiz')
+    expect(screen.getByRole('link', { name: 'Lịch sử đố vui' })).toHaveAttribute(
       'href',
       '/quiz/history',
     )
@@ -54,5 +60,14 @@ describe('AppNav', () => {
     renderAppNav()
 
     expect(screen.getByText('sarah@example.com')).toBeInTheDocument()
+  })
+
+  it('switches nav labels to English when the English toggle is clicked', () => {
+    ;(listDocuments as any).mockResolvedValue([])
+    renderAppNav()
+
+    fireEvent.click(screen.getByRole('button', { name: 'English' }))
+
+    expect(screen.getByRole('link', { name: 'Documents' })).toHaveAttribute('href', '/documents')
   })
 })

@@ -1,5 +1,6 @@
 import { ChangeEvent, DragEvent, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
@@ -23,18 +24,11 @@ const STATUS_VARIANT = {
   failed: 'red',
 } as const
 
-const STATUS_LABEL: Record<DocumentListItem['status'], string> = {
-  uploading: 'Uploading…',
-  processing: 'Processing…',
-  ready: 'Indexed',
-  failed: 'Failed',
-}
-
 const FILTERS = [
-  { id: 'all', label: 'All' },
-  { id: 'pdf', label: 'PDF' },
-  { id: 'docx', label: 'Docs' },
-  { id: 'other', label: 'Text' },
+  { id: 'all', labelKey: 'filters.all' },
+  { id: 'pdf', labelKey: 'filters.pdf' },
+  { id: 'docx', labelKey: 'filters.docx' },
+  { id: 'other', labelKey: 'filters.other' },
 ] as const
 
 function matchesFilter(fileType: string, filter: (typeof FILTERS)[number]['id']) {
@@ -45,6 +39,7 @@ function matchesFilter(fileType: string, filter: (typeof FILTERS)[number]['id'])
 }
 
 export function DocumentsPage() {
+  const { t } = useTranslation('documents')
   const [error, setError] = useState<string | null>(null)
   const [previewing, setPreviewing] = useState<DocumentListItem | null>(null)
   const [isDraggingOver, setIsDraggingOver] = useState(false)
@@ -68,20 +63,20 @@ export function DocumentsPage() {
   const uploadMutation = useMutation({
     mutationFn: (file: File) => uploadDocument(file),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
-    onError: () => setError('Failed to upload document'),
+    onError: () => setError(t('errors.upload')),
   })
 
   const renameMutation = useMutation({
     mutationFn: ({ id, filename }: { id: string; filename: string }) =>
       renameDocument(id, filename),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
-    onError: () => setError('Failed to rename document'),
+    onError: () => setError(t('errors.rename')),
   })
 
   const deleteMutation = useMutation({
     mutationFn: (id: string) => deleteDocument(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.documents }),
-    onError: () => setError('Failed to delete document'),
+    onError: () => setError(t('errors.delete')),
   })
 
   function handleUpload(event: ChangeEvent<HTMLInputElement>) {
@@ -109,13 +104,13 @@ export function DocumentsPage() {
   }
 
   function handleRename(doc: DocumentListItem) {
-    const newName = window.prompt('New filename', doc.filename)
+    const newName = window.prompt(t('renamePromptLabel'), doc.filename)
     if (!newName) return
     renameMutation.mutate({ id: doc.id, filename: newName })
   }
 
   function handleDelete(doc: DocumentListItem) {
-    if (!window.confirm(`Delete ${doc.filename}?`)) return
+    if (!window.confirm(t('deleteConfirm', { filename: doc.filename }))) return
     deleteMutation.mutate(doc.id)
   }
 
@@ -124,11 +119,11 @@ export function DocumentsPage() {
       const url = await getDownloadUrl(doc.id)
       window.open(url, '_blank')
     } catch {
-      setError('Failed to download document')
+      setError(t('errors.download'))
     }
   }
 
-  const displayError = documentsQuery.isError ? 'Failed to load documents' : error
+  const displayError = documentsQuery.isError ? t('errors.load') : error
 
   return (
     <div className="px-8 pb-12 pt-7">
@@ -152,9 +147,9 @@ export function DocumentsPage() {
           htmlFor="upload-input"
           className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted"
         >
-          Upload document
+          {t('uploadLabel')}
         </label>
-        <p className="mb-2 text-sm text-muted">Drag a file here, or click to browse</p>
+        <p className="mb-2 text-sm text-muted">{t('dragHint')}</p>
         <input
           id="upload-input"
           type="file"
@@ -168,10 +163,9 @@ export function DocumentsPage() {
           <div className="mb-5 flex h-[88px] w-[88px] items-center justify-center rounded-[22px] bg-ok-bg">
             <span className="text-4xl">📄</span>
           </div>
-          <h2 className="mb-2 text-xl font-extrabold tracking-tight">Build your knowledge base</h2>
+          <h2 className="mb-2 text-xl font-extrabold tracking-tight">{t('emptyTitle')}</h2>
           <p className="mb-6 max-w-[400px] text-[15px] leading-relaxed text-muted">
-            Upload PDFs, Word docs, text or Markdown files. We&apos;ll index every passage so you
-            can search, ask, and quiz — all grounded in your own material.
+            {t('emptyBody')}
           </p>
         </div>
       ) : (
@@ -188,12 +182,12 @@ export function DocumentsPage() {
                       : 'rounded-md px-3.5 py-1.5 text-sm font-semibold text-muted'
                   }
                 >
-                  {f.label}
+                  {t(f.labelKey)}
                 </button>
               ))}
             </div>
             <span className="flex-1" />
-            <span className="text-sm text-muted">{documents.length} documents</span>
+            <span className="text-sm text-muted">{t('documentCount', { count: documents.length })}</span>
           </div>
 
           <div className="grid grid-cols-[repeat(auto-fill,minmax(300px,1fr))] gap-4">
@@ -210,29 +204,29 @@ export function DocumentsPage() {
                       {doc.filename}
                     </div>
                     <div className="mt-1 text-xs text-faint">
-                      Uploaded {new Date(doc.uploaded_at).toLocaleDateString()}
+                      {t('uploadedOn', { date: new Date(doc.uploaded_at).toLocaleDateString() })}
                     </div>
                   </div>
                 </div>
                 <div>
-                  <Badge variant={STATUS_VARIANT[doc.status]}>{STATUS_LABEL[doc.status]}</Badge>
+                  <Badge variant={STATUS_VARIANT[doc.status]}>{t(`status.${doc.status}`)}</Badge>
                 </div>
                 <div className="flex flex-wrap gap-1.5 border-t border-[#EEF2F3] pt-3">
                   {doc.status === 'ready' && (
                     <>
                       <Button variant="secondary" onClick={() => setPreviewing(doc)}>
-                        Preview
+                        {t('preview')}
                       </Button>
                       <Button variant="secondary" onClick={() => handleDownload(doc)}>
-                        Download
+                        {t('download')}
                       </Button>
                     </>
                   )}
                   <Button variant="secondary" onClick={() => handleRename(doc)}>
-                    Rename
+                    {t('rename')}
                   </Button>
                   <Button variant="danger" onClick={() => handleDelete(doc)}>
-                    Delete
+                    {t('delete')}
                   </Button>
                 </div>
               </Card>

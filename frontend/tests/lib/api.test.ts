@@ -220,14 +220,14 @@ describe('api client', () => {
       json: async () => ({ user_message: userMessage, assistant_message: assistantMessage }),
     })
 
-    const result = await sendChatMessage('session-1', 'What is the refund window?', false)
+    const result = await sendChatMessage('session-1', 'What is the refund window?', false, 'vi')
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/chat/sessions/session-1/messages'),
       expect.objectContaining({
         method: 'POST',
         headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ content: 'What is the refund window?', web_search: false }),
+        body: JSON.stringify({ content: 'What is the refund window?', web_search: false, language: 'vi' }),
       }),
     )
     expect(result).toEqual({ user_message: userMessage, assistant_message: assistantMessage })
@@ -236,7 +236,7 @@ describe('api client', () => {
   it('sendChatMessage fails when the request is not ok', async () => {
     ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
 
-    await expect(sendChatMessage('session-1', 'hello', false)).rejects.toThrow('Failed to send message')
+    await expect(sendChatMessage('session-1', 'hello', false, 'vi')).rejects.toThrow('Failed to send message')
   })
 
   it('generateQuiz sends document_ids and num_questions and returns the quiz', async () => {
@@ -250,14 +250,14 @@ describe('api client', () => {
     }
     ;(globalThis.fetch as any).mockResolvedValue({ ok: true, json: async () => quiz })
 
-    const result = await generateQuiz(['doc-1'], 5)
+    const result = await generateQuiz(['doc-1'], 5, 'vi')
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/quiz/generate'),
       expect.objectContaining({
         method: 'POST',
         headers: { Authorization: 'Bearer test-token', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ document_ids: ['doc-1'], num_questions: 5 }),
+        body: JSON.stringify({ document_ids: ['doc-1'], num_questions: 5, language: 'vi' }),
       }),
     )
     expect(result).toEqual(quiz)
@@ -266,7 +266,7 @@ describe('api client', () => {
   it('generateQuiz fails when the request is not ok', async () => {
     ;(globalThis.fetch as any).mockResolvedValue({ ok: false })
 
-    await expect(generateQuiz(['doc-1'], 5)).rejects.toThrow('Failed to generate quiz')
+    await expect(generateQuiz(['doc-1'], 5, 'vi')).rejects.toThrow('Failed to generate quiz')
   })
 
   it('getQuiz sends an authorized GET request for the quiz id', async () => {

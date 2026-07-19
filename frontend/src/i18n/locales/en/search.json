@@ -1,0 +1,21 @@
+{
+  "fileTypes": {
+    "all": "All types",
+    "pdf": "PDF",
+    "docx": "DOCX",
+    "text": "Text"
+  },
+  "recent": "Recent",
+  "inputLabel": "Search your documents",
+  "inputPlaceholder": "Search across all your documents…",
+  "searchButton": "Search",
+  "errors": {
+    "searchFailed": "Search failed, try again"
+  },
+  "searching": "Searching...",
+  "noResults": "No results found",
+  "matchPercent": "{{pct}}% match",
+  "passageOf": "passage {{index}} of {{total}}",
+  "morePassages": "+{{count}} more passages in this document",
+  "loadMore": "Load more"
+}

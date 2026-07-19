@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "sessionStart": "Failed to start chat session, try refreshing the page",
+    "sendFailed": "Failed to send message, try again"
+  },
+  "badges": {
+    "web": "Web",
+    "documentsAndGeneral": "Documents + General knowledge",
+    "general": "General knowledge"
+  },
+  "citation": "{{filename}} — passage {{index}} of {{total}}",
+  "inputLabel": "Ask a question",
+  "inputPlaceholder": "Ask a question grounded in your documents…",
+  "webSearchLabel": "Search the web for this message",
+  "send": "Send"
+}

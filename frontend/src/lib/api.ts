@@ -154,11 +154,12 @@ export async function sendChatMessage(
   sessionId: string,
   content: string,
   webSearch: boolean,
+  language: string,
 ): Promise<{ user_message: ChatMessage; assistant_message: ChatMessage }> {
   const res = await apiFetch(`${API_BASE}/chat/sessions/${sessionId}/messages`, {
     method: 'POST',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ content, web_search: webSearch }),
+    body: JSON.stringify({ content, web_search: webSearch, language }),
   })
   if (!res.ok) throw new Error('Failed to send message')
   return res.json()
@@ -175,11 +176,15 @@ export type Quiz = {
   questions: QuizQuestion[]
 }
 
-export async function generateQuiz(documentIds: string[], numQuestions: number): Promise<Quiz> {
+export async function generateQuiz(
+  documentIds: string[],
+  numQuestions: number,
+  language: string,
+): Promise<Quiz> {
   const res = await apiFetch(`${API_BASE}/quiz/generate`, {
     method: 'POST',
     headers: { ...(await authHeader()), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ document_ids: documentIds, num_questions: numQuestions }),
+    body: JSON.stringify({ document_ids: documentIds, num_questions: numQuestions, language }),
   })
   if (!res.ok) throw new Error('Failed to generate quiz')
   return res.json()

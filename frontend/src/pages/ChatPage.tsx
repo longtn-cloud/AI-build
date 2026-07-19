@@ -1,14 +1,17 @@
 import { FormEvent, useState } from 'react'
 import { useMutation, useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import i18n from '../i18n'
 import { ChatMessage, createChatSession, sendChatMessage } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
 export function ChatPage() {
+  const { t } = useTranslation('chat')
   const [messages, setMessages] = useState<ChatMessage[]>([])
   const [input, setInput] = useState('')
   const [webSearch, setWebSearch] = useState(false)
@@ -21,7 +24,7 @@ export function ChatPage() {
 
   const sendMutation = useMutation({
     mutationFn: (vars: { sessionId: string; content: string; webSearch: boolean }) =>
-      sendChatMessage(vars.sessionId, vars.content, vars.webSearch),
+      sendChatMessage(vars.sessionId, vars.content, vars.webSearch, i18n.language),
     onSuccess: ({ user_message, assistant_message }) => {
       setMessages((prev) => [...prev, user_message, assistant_message])
       setInput('')
@@ -39,8 +42,8 @@ export function ChatPage() {
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto py-7">
         <div className="mx-auto flex max-w-[760px] flex-col gap-6 px-8">
-          {sessionQuery.isError && <Alert>Failed to start chat session, try refreshing the page</Alert>}
-          {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
+          {sessionQuery.isError && <Alert>{t('errors.sessionStart')}</Alert>}
+          {sendMutation.isError && <Alert>{t('errors.sendFailed')}</Alert>}
           {messages.map((message) =>
             message.role === 'user' ? (
               <div
@@ -60,14 +63,14 @@ export function ChatPage() {
                   </p>
                   {message.used_web_search ? (
                     <div className="mb-3 inline-flex">
-                      <Badge variant="blue">Web</Badge>
+                      <Badge variant="blue">{t('badges.web')}</Badge>
                     </div>
                   ) : message.used_general_knowledge ? (
                     <div className="mb-3 inline-flex">
                       <Badge variant="blue">
                         {message.citations.length > 0
-                          ? 'Documents + General knowledge'
-                          : 'General knowledge'}
+                          ? t('badges.documentsAndGeneral')
+                          : t('badges.general')}
                       </Badge>
                     </div>
                   ) : null}
@@ -79,8 +82,11 @@ export function ChatPage() {
                           className="rounded-lg border border-line border-l-[3px] border-l-accent bg-[#FBFDFB] px-3.5 py-3"
                         >
                           <span className="text-xs font-bold text-sidebar">
-                            {citation.filename} — passage {citation.chunk_index + 1} of{' '}
-                            {citation.total_chunks}
+                            {t('citation', {
+                              filename: citation.filename,
+                              index: citation.chunk_index + 1,
+                              total: citation.total_chunks,
+                            })}
                           </span>
                         </div>
                       ))}
@@ -100,13 +106,13 @@ export function ChatPage() {
               htmlFor="chat-input"
               className="mb-1 block text-xs font-semibold uppercase tracking-wide text-muted"
             >
-              Ask a question
+              {t('inputLabel')}
             </label>
             <Input
               id="chat-input"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask a question grounded in your documents…"
+              placeholder={t('inputPlaceholder')}
             />
           </div>
           <div className="flex items-center justify-between">
@@ -117,10 +123,10 @@ export function ChatPage() {
                 onChange={(e) => setWebSearch(e.target.checked)}
                 className="h-4 w-4 rounded border-line text-accent focus:ring-accent"
               />
-              Search the web for this message
+              {t('webSearchLabel')}
             </label>
             <Button type="submit" disabled={sendMutation.isPending || !sessionQuery.data}>
-              Send
+              {t('send')}
             </Button>
           </div>
         </form>

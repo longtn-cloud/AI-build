@@ -3,7 +3,7 @@ import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { AuthProvider } from '../../src/contexts/AuthContext'
-import { LoginPage } from '../../src/pages/LoginPage'
+import { SignupPage } from '../../src/pages/SignupPage'
 import { supabase } from '../../src/lib/supabaseClient'
 
 vi.mock('../../src/lib/supabaseClient', () => ({
@@ -11,42 +11,42 @@ vi.mock('../../src/lib/supabaseClient', () => ({
     auth: {
       getSession: vi.fn().mockResolvedValue({ data: { session: null } }),
       onAuthStateChange: vi.fn().mockReturnValue({ data: { subscription: { unsubscribe: vi.fn() } } }),
-      signInWithPassword: vi.fn().mockResolvedValue({ error: null }),
+      signUp: vi.fn().mockResolvedValue({ error: null }),
     },
   },
 }))
 
-describe('LoginPage', () => {
+describe('SignupPage', () => {
   it('renders the Vietnamese heading and labels by default', () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <LoginPage />
+          <SignupPage />
         </AuthProvider>
       </MemoryRouter>,
     )
 
-    expect(screen.getByRole('heading', { name: 'Đăng nhập' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Đăng ký' })).toBeInTheDocument()
     expect(screen.getByLabelText('Email')).toBeInTheDocument()
     expect(screen.getByLabelText('Mật khẩu')).toBeInTheDocument()
-    expect(screen.getByRole('link', { name: 'Đăng ký' })).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: 'Đăng nhập' })).toBeInTheDocument()
   })
 
-  it('calls signInWithPassword with entered credentials', async () => {
+  it('calls signUp with entered credentials', async () => {
     render(
       <MemoryRouter>
         <AuthProvider>
-          <LoginPage />
+          <SignupPage />
         </AuthProvider>
       </MemoryRouter>,
     )
 
     fireEvent.change(screen.getByLabelText('Email'), { target: { value: 'user@example.com' } })
     fireEvent.change(screen.getByLabelText('Mật khẩu'), { target: { value: 'password123' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Đăng nhập' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Đăng ký' }))
 
     await waitFor(() => {
-      expect(supabase.auth.signInWithPassword).toHaveBeenCalledWith({
+      expect(supabase.auth.signUp).toHaveBeenCalledWith({
         email: 'user@example.com',
         password: 'password123',
       })

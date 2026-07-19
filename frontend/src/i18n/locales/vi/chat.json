@@ -1,0 +1,16 @@
+{
+  "errors": {
+    "sessionStart": "Không thể bắt đầu phiên trò chuyện, vui lòng tải lại trang",
+    "sendFailed": "Gửi tin nhắn thất bại, vui lòng thử lại"
+  },
+  "badges": {
+    "web": "Web",
+    "documentsAndGeneral": "Tài liệu + Kiến thức chung",
+    "general": "Kiến thức chung"
+  },
+  "citation": "{{filename}} — đoạn {{index}} trên {{total}}",
+  "inputLabel": "Đặt câu hỏi",
+  "inputPlaceholder": "Đặt câu hỏi dựa trên tài liệu của bạn…",
+  "webSearchLabel": "Tìm kiếm trên web cho tin nhắn này",
+  "send": "Gửi"
+}

@@ -1,5 +1,6 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -8,6 +9,7 @@ import { listQuizAttempts } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
 export function QuizHistoryPage() {
+  const { t } = useTranslation('quiz')
   const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
   const attempts = attemptsQuery.data ?? null
   const navigate = useNavigate()
@@ -16,12 +18,12 @@ export function QuizHistoryPage() {
     <div className="mx-auto max-w-[980px] px-8 pb-12 pt-7">
       <div className="mb-6 flex items-center justify-between">
         <Link to="/quiz" className="text-sm font-semibold text-accent-hover hover:underline">
-          Take a quiz
+          {t('takeQuiz')}
         </Link>
       </div>
-      {attemptsQuery.isError && <Alert>Failed to load quiz history, try again</Alert>}
+      {attemptsQuery.isError && <Alert>{t('errors.loadHistory')}</Alert>}
       {attempts !== null && attempts.length === 0 && (
-        <p className="text-sm text-muted">No quiz attempts yet</p>
+        <p className="text-sm text-muted">{t('noAttempts')}</p>
       )}
       {attempts !== null && attempts.length > 0 && (
         <div className="flex flex-col gap-2.5">
@@ -32,7 +34,7 @@ export function QuizHistoryPage() {
                 {a.completed_at}
               </span>
               <Button variant="secondary" onClick={() => navigate(`/quiz/${a.quiz_id}/retake`)}>
-                Retake
+                {t('retake')}
               </Button>
             </Card>
           ))}
