@@ -94,12 +94,15 @@ async def delete_document(document_id: str, user_id: str = Depends(get_current_u
             "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
             (document_id, user_id),
         ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="Document not found")
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    delete_file(row["storage_path"])
+
+    with get_conn() as conn:
         conn.execute(
             "DELETE FROM documents WHERE id = %s AND user_id = %s", (document_id, user_id)
         )
-    delete_file(row["storage_path"])
 
 
 @router.get("/{document_id}/download")
