@@ -226,6 +226,31 @@ describe('DocumentsPage', () => {
     })
   })
 
+  it('reflects updated shared_team_ids in the share modal after toggling a team', async () => {
+    ;(listDocuments as any)
+      .mockResolvedValueOnce([readyDoc])
+      .mockResolvedValueOnce([{ ...readyDoc, shared_team_ids: ['team-1'] }])
+    ;(shareDocument as any).mockResolvedValue(undefined)
+    ;(listTeams as any).mockResolvedValue([{ id: 'team-1', name: 'Team One' }])
+
+    renderWithQueryClient(<DocumentsPage />)
+    await waitFor(() => screen.getByText('report.pdf'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Chia sẻ' }))
+    await waitFor(() => screen.getByText('Chia sẻ với nhóm'))
+
+    const checkbox = (await waitFor(() =>
+      screen.getByRole('checkbox', { name: 'Team One' }),
+    )) as HTMLInputElement
+    expect(checkbox.checked).toBe(false)
+
+    fireEvent.click(checkbox)
+
+    await waitFor(() => {
+      expect(checkbox.checked).toBe(true)
+    })
+  })
+
   it('shows the Shared with me tab with shared documents', async () => {
     ;(listDocuments as any).mockResolvedValue([readyDoc])
     ;(listSharedDocuments as any).mockResolvedValue([

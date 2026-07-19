@@ -12,7 +12,7 @@ vi.mock('../../src/lib/api', () => ({
   listTeams: vi.fn(),
 }))
 
-import { listQuizAttempts, listSharedQuizzes, listTeams, shareQuiz } from '../../src/lib/api'
+import { listQuizAttempts, listSharedQuizzes, listTeams } from '../../src/lib/api'
 import { QuizHistoryPage } from '../../src/pages/QuizHistoryPage'
 
 function RetakeRouteProbe() {

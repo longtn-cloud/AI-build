@@ -8,7 +8,6 @@ import { Button } from '../components/ui/Button'
 import { Card } from '../components/ui/Card'
 import { ShareTeamsModal } from '../components/ShareTeamsModal'
 import {
-  QuizAttemptSummary,
   listQuizAttempts,
   listSharedQuizzes,
   shareQuiz,
@@ -19,12 +18,13 @@ import { queryKeys } from '../lib/queryKeys'
 export function QuizHistoryPage() {
   const { t } = useTranslation('quiz')
   const [view, setView] = useState<'mine' | 'shared'>('mine')
-  const [sharingAttempt, setSharingAttempt] = useState<QuizAttemptSummary | null>(null)
+  const [sharingAttemptId, setSharingAttemptId] = useState<string | null>(null)
   const navigate = useNavigate()
   const queryClient = useQueryClient()
 
   const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
   const attempts = attemptsQuery.data ?? null
+  const sharingAttempt = attempts?.find((a) => a.id === sharingAttemptId) ?? null
 
   const sharedQuizzesQuery = useQuery({
     queryKey: queryKeys.sharedQuizzes,
@@ -97,7 +97,7 @@ export function QuizHistoryPage() {
                     {a.score} / {a.total_questions} — {a.document_filenames.join(', ')} — {a.completed_at}
                   </span>
                   <div className="flex gap-2">
-                    <Button variant="secondary" onClick={() => setSharingAttempt(a)}>
+                    <Button variant="secondary" onClick={() => setSharingAttemptId(a.id)}>
                       {t('share')}
                     </Button>
                     <Button variant="secondary" onClick={() => navigate(`/quiz/${a.quiz_id}/retake`)}>
@@ -116,7 +116,7 @@ export function QuizHistoryPage() {
           sharedTeamIds={sharingAttempt.shared_team_ids}
           onShare={(teamId) => shareMutation.mutate({ quizId: sharingAttempt.quiz_id, teamId })}
           onUnshare={(teamId) => unshareMutation.mutate({ quizId: sharingAttempt.quiz_id, teamId })}
-          onClose={() => setSharingAttempt(null)}
+          onClose={() => setSharingAttemptId(null)}
         />
       )}
     </div>

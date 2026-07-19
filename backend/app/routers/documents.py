@@ -7,7 +7,7 @@ from app.auth import get_current_user_id
 from app.config import settings
 from app.db import get_conn
 from app.models import DocumentListItemOut, DocumentOut
-from app.services.access import is_team_member
+from app.services.access import DOCUMENT_ACCESS_CLAUSE, access_params, is_team_member
 from app.services.processing import process_document
 from app.services.storage import create_signed_url, delete_file, upload_file
 
@@ -112,8 +112,8 @@ def delete_document(document_id: str, user_id: str = Depends(get_current_user_id
 def get_download_url(document_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
-            (document_id, user_id),
+            f"SELECT storage_path FROM documents d WHERE d.id = %s AND {DOCUMENT_ACCESS_CLAUSE}",
+            (document_id, *access_params(user_id)),
         ).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Document not found")
@@ -124,8 +124,8 @@ def get_download_url(document_id: str, user_id: str = Depends(get_current_user_i
 def get_preview(document_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         row = conn.execute(
-            "SELECT file_type, status, extracted_text FROM documents WHERE id = %s AND user_id = %s",
-            (document_id, user_id),
+            f"SELECT file_type, status, extracted_text FROM documents d WHERE d.id = %s AND {DOCUMENT_ACCESS_CLAUSE}",
+            (document_id, *access_params(user_id)),
         ).fetchone()
     if row is None:
         raise HTTPException(status_code=404, detail="Document not found")

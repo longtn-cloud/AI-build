@@ -49,7 +49,7 @@ export function DocumentsPage() {
   const [isDraggingOver, setIsDraggingOver] = useState(false)
   const [filter, setFilter] = useState<(typeof FILTERS)[number]['id']>('all')
   const [view, setView] = useState<'mine' | 'shared'>('mine')
-  const [sharingDoc, setSharingDoc] = useState<DocumentListItem | null>(null)
+  const [sharingDocId, setSharingDocId] = useState<string | null>(null)
   const queryClient = useQueryClient()
 
   const documentsQuery = useQuery({
@@ -61,6 +61,7 @@ export function DocumentsPage() {
         : false,
   })
   const documents = documentsQuery.data ?? []
+  const sharingDoc = documents.find((d) => d.id === sharingDocId) ?? null
   const filtered = useMemo(
     () => documents.filter((d) => matchesFilter(d.file_type, filter)),
     [documents, filter],
@@ -293,7 +294,7 @@ export function DocumentsPage() {
                       <Button variant="secondary" onClick={() => handleRename(doc)}>
                         {t('rename')}
                       </Button>
-                      <Button variant="secondary" onClick={() => setSharingDoc(doc)}>
+                      <Button variant="secondary" onClick={() => setSharingDocId(doc.id)}>
                         {t('share')}
                       </Button>
                       <Button variant="danger" onClick={() => handleDelete(doc)}>
@@ -314,7 +315,7 @@ export function DocumentsPage() {
           sharedTeamIds={sharingDoc.shared_team_ids}
           onShare={(teamId) => shareMutation.mutate({ id: sharingDoc.id, teamId })}
           onUnshare={(teamId) => unshareMutation.mutate({ id: sharingDoc.id, teamId })}
-          onClose={() => setSharingDoc(null)}
+          onClose={() => setSharingDocId(null)}
         />
       )}
     </div>
