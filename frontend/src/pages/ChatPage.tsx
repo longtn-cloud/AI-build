@@ -39,6 +39,7 @@ export function ChatPage() {
     <div className="flex h-full flex-col">
       <div className="flex-1 overflow-y-auto py-7">
         <div className="mx-auto flex max-w-[760px] flex-col gap-6 px-8">
+          {sessionQuery.isError && <Alert>Failed to start chat session, try refreshing the page</Alert>}
           {sendMutation.isError && <Alert>Failed to send message, try again</Alert>}
           {messages.map((message) =>
             message.role === 'user' ? (
@@ -110,7 +111,7 @@ export function ChatPage() {
               />
               Search the web for this message
             </label>
-            <Button type="submit" disabled={sendMutation.isPending}>
+            <Button type="submit" disabled={sendMutation.isPending || !sessionQuery.data}>
               Send
             </Button>
           </div>
