@@ -134,6 +134,29 @@ def test_send_message_answers_from_general_knowledge_when_nothing_clears_thresho
     answer_mock.assert_called_once_with("What is the capital of France?", [], [])
 
 
+def test_send_message_flags_general_knowledge_when_chunks_empty_even_if_model_says_false(monkeypatch):
+    from app.routers import chat as chat_router
+
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    answer_mock = MagicMock(return_value={"answer": "some answer", "used_general_knowledge": False})
+    monkeypatch.setattr(chat_router, "answer_from_chunks", answer_mock)
+
+    user_id, headers = _create_user()
+    _create_document_with_chunks(user_id, "unrelated.txt", [IRRELEVANT_VEC])
+    session_id = _create_session(headers)
+
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What is the capital of France?"},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    body = response.json()
+    assert body["assistant_message"]["content"] == "some answer"
+    assert body["assistant_message"]["used_general_knowledge"] is True
+
+
 def test_send_message_with_web_search_skips_retrieval(monkeypatch):
     from app.routers import chat as chat_router
 

@@ -133,7 +133,7 @@ def send_message(
             ]
             result = answer_from_chunks(body.content, chunks, history)
             answer_text = result["answer"]
-            used_general_knowledge = result["used_general_knowledge"]
+            used_general_knowledge = result["used_general_knowledge"] or not chunks
             citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]
             used_web_search = False
     except Exception as exc:

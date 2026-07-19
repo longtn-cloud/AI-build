@@ -60,6 +60,8 @@ Migrations are plain SQL files in `backend/migrations/`, applied in order agains
 - `0001_init.sql` — `documents`, `chunks` (pgvector column, RLS scoped to `auth.uid()`)
 - `0002_chat.sql` — `chat_sessions`, `chat_messages`
 - `0003_quiz.sql` — `quizzes`, `quiz_questions`, `quiz_attempts`
+- `0004_search_fts.sql` — full-text search column (`chunks.content_tsv`)
+- `0005_chat_general_knowledge.sql` — `chat_messages.used_general_knowledge` flag
 
 Run them via the Supabase SQL editor or `psql "$SUPABASE_DB_URL" -f backend/migrations/000X_*.sql`, in numeric order.
 
