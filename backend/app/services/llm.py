@@ -1,11 +1,33 @@
+import logging
+
 from google import genai
+from google.genai import errors as genai_errors
 from google.genai import types
 
 from app.config import settings
 
+logger = logging.getLogger(__name__)
+
 _client = genai.Client(api_key=settings.gemini_api_key)
 
 MODEL = "gemini-2.5-flash"
+
+
+def llm_error_response(exc: Exception, fallback_detail: str) -> tuple[int, str]:
+    """Log a failed LLM/embedding call and map it to an HTTP status + detail.
+
+    The Gemini SDK raises ``APIError`` with an HTTP ``code`` (e.g. 429 when the
+    key is rate-limited or over quota). Surfacing that distinctly turns an opaque
+    502 into an actionable signal, and logging the exception makes the real cause
+    visible in the server logs instead of being swallowed.
+    """
+    logger.exception("LLM call failed")
+    if isinstance(exc, genai_errors.APIError) and exc.code == 429:
+        return 429, (
+            "The AI service is rate-limited or over quota. "
+            "Please try again in a little while."
+        )
+    return 502, fallback_detail
 
 DOCUMENTS_SYSTEM_PROMPT = (
     "You are a knowledgeable assistant helping the user understand their uploaded "

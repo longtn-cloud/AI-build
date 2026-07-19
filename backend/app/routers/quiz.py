@@ -7,7 +7,7 @@ from psycopg.types.json import Json
 
 from app.auth import get_current_user_id
 from app.db import get_conn
-from app.services.llm import generate_quiz_questions
+from app.services.llm import generate_quiz_questions, llm_error_response
 
 router = APIRouter(prefix="/quiz", tags=["quiz"])
 
@@ -122,9 +122,10 @@ def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_
         try:
             raw_questions = generate_quiz_questions(chunks, body.num_questions, body.language)
         except Exception as exc:
-            raise HTTPException(
-                status_code=502, detail="Failed to generate quiz questions, please try again"
-            ) from exc
+            status_code, detail = llm_error_response(
+                exc, "Failed to generate quiz questions, please try again"
+            )
+            raise HTTPException(status_code=status_code, detail=detail) from exc
         valid_questions = [
             q
             for raw in raw_questions
