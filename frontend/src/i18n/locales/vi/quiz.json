@@ -35,5 +35,8 @@
   "retakeQuiz": "Làm lại bài",
   "backToQuizzesButton": "Quay lại danh sách đố vui",
   "takeQuiz": "Làm bài đố vui",
-  "retake": "Làm lại"
+  "retake": "Làm lại",
+  "share": "Chia sẻ",
+  "tabs": { "mine": "Lượt làm của tôi", "shared": "Được chia sẻ" },
+  "takeSharedQuiz": "Làm bài"
 }

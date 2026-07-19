@@ -32,5 +32,7 @@
   "deleteConfirm": "Delete {{filename}}?",
   "previewFailed": "Failed to load preview.",
   "close": "Close",
-  "previewTitle": "Document preview"
+  "previewTitle": "Document preview",
+  "share": "Share",
+  "tabs": { "mine": "My Documents", "shared": "Shared with me" }
 }

@@ -1,0 +1,11 @@
+{
+  "createPlaceholder": "New team name",
+  "createTeam": "Create team",
+  "searchPlaceholder": "Search by email…",
+  "addMember": "Add",
+  "removeMember": "Remove",
+  "roles": { "admin": "Admin", "member": "Member" },
+  "errors": {
+    "loadTeams": "Failed to load teams, try again"
+  }
+}
