@@ -193,6 +193,29 @@ def test_generate_quiz_returns_404_for_other_users_document(monkeypatch):
     generate_mock.assert_not_called()
 
 
+def test_generate_quiz_samples_chunks_across_all_selected_documents(monkeypatch):
+    from app.routers import quiz as quiz_router
+
+    user_id, headers = _create_user()
+    doc_a = _create_document_with_chunks(user_id, "big.txt", 100)
+    doc_b = _create_document_with_chunks(user_id, "small1.txt", 5)
+    doc_c = _create_document_with_chunks(user_id, "small2.txt", 5)
+
+    generate_mock = MagicMock(return_value=[_valid_question(doc_b, 0)])
+    monkeypatch.setattr(quiz_router, "generate_quiz_questions", generate_mock)
+
+    response = client.post(
+        "/quiz/generate",
+        json={"document_ids": [doc_a, doc_b, doc_c], "num_questions": 5},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    chunks_passed = generate_mock.call_args[0][0]
+    document_ids_seen = {c["document_id"] for c in chunks_passed}
+    assert document_ids_seen == {doc_a, doc_b, doc_c}
+
+
 def test_generate_quiz_returns_400_when_selection_has_no_chunks(monkeypatch):
     from app.routers import quiz as quiz_router
 
