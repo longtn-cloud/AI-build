@@ -90,6 +90,34 @@ describe('SearchPage', () => {
     expect(screen.getByText(byText('p', 'revenue passage two'))).toBeInTheDocument()
   })
 
+  it('highlights every occurrence of every query term, not just the first literal match', async () => {
+    ;(search as any).mockResolvedValue({
+      results: [
+        {
+          document_id: '1',
+          filename: 'report.pdf',
+          chunk_index: 0,
+          total_chunks: 1,
+          content: 'revenue grew and revenue figures improved',
+          score: 0.9,
+        },
+      ],
+      has_more: false,
+    })
+
+    const { container } = renderSearchPage()
+    fireEvent.change(screen.getByLabelText('Search your documents'), {
+      target: { value: 'revenue figures' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(container.querySelectorAll('mark')).toHaveLength(3)
+    })
+    const marks = Array.from(container.querySelectorAll('mark')).map((m) => m.textContent)
+    expect(marks).toEqual(['revenue', 'revenue', 'figures'])
+  })
+
   it('shows an empty state when no results are found', async () => {
     ;(search as any).mockResolvedValue({ results: [], has_more: false })
 

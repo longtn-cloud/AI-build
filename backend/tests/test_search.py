@@ -170,6 +170,29 @@ def test_search_recent_filter_excludes_old_documents(monkeypatch):
     assert filenames == ["new.txt"]
 
 
+def test_search_file_type_and_recent_filters_combine_with_and(monkeypatch):
+    from app.routers import search as search_router
+
+    monkeypatch.setattr(search_router, "embed_query", lambda q: TARGET_VEC)
+
+    user_id, headers = _create_user()
+    old_timestamp = datetime.now(timezone.utc) - timedelta(days=60)
+    _create_document_with_chunks(
+        user_id, "old.pdf", [TARGET_VEC], file_type="pdf", uploaded_at=old_timestamp
+    )
+    _create_document_with_chunks(user_id, "new.pdf", [TARGET_VEC], file_type="pdf")
+    _create_document_with_chunks(user_id, "new.docx", [TARGET_VEC], file_type="docx")
+
+    response = client.get(
+        "/search",
+        params={"q": "revenue", "file_type": "pdf", "recent": "true"},
+        headers=headers,
+    )
+
+    filenames = [r["filename"] for r in response.json()["results"]]
+    assert filenames == ["new.pdf"]
+
+
 def test_search_paginates_with_offset_and_has_more(monkeypatch):
     from app.routers import search as search_router
 
