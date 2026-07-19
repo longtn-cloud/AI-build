@@ -80,19 +80,20 @@ def test_list_members_rejects_non_members():
 
 
 def test_search_members_finds_by_email_and_excludes_existing_members():
-    admin_id, admin_headers = _create_user("admin@example.com")
+    unique = uuid.uuid4().hex[:8]
+    admin_id, admin_headers = _create_user(f"admin-{unique}@example.com")
     team_id = _create_team(admin_headers)
-    colleague_id, _ = _create_user("colleague@example.com")
+    colleague_id, _ = _create_user(f"colleague-{unique}@example.com")
 
     response = client.get(
-        f"/teams/{team_id}/members/search", params={"q": "colleague"}, headers=admin_headers
+        f"/teams/{team_id}/members/search", params={"q": f"colleague-{unique}"}, headers=admin_headers
     )
 
     assert response.status_code == 200
-    assert response.json() == [{"user_id": colleague_id, "email": "colleague@example.com"}]
+    assert response.json() == [{"user_id": colleague_id, "email": f"colleague-{unique}@example.com"}]
 
     admin_search = client.get(
-        f"/teams/{team_id}/members/search", params={"q": "admin"}, headers=admin_headers
+        f"/teams/{team_id}/members/search", params={"q": f"admin-{unique}"}, headers=admin_headers
     )
     assert admin_search.json() == []
 
