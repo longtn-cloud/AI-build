@@ -94,13 +94,27 @@ export type SearchResult = {
   score: number
 }
 
-export async function search(query: string): Promise<SearchResult[]> {
-  const res = await apiFetch(`${API_BASE}/search?q=${encodeURIComponent(query)}`, {
-    headers: await authHeader(),
-  })
+export type SearchResponse = {
+  results: SearchResult[]
+  has_more: boolean
+}
+
+export type SearchFileType = 'pdf' | 'docx' | 'text'
+
+export type SearchOptions = {
+  fileType?: SearchFileType
+  recent?: boolean
+  offset?: number
+}
+
+export async function search(query: string, options: SearchOptions = {}): Promise<SearchResponse> {
+  let url = `${API_BASE}/search?q=${encodeURIComponent(query)}`
+  if (options.fileType) url += `&file_type=${encodeURIComponent(options.fileType)}`
+  if (options.recent) url += '&recent=true'
+  if (options.offset) url += `&offset=${options.offset}`
+  const res = await apiFetch(url, { headers: await authHeader() })
   if (!res.ok) throw new Error('Search failed')
-  const data = await res.json()
-  return data.results
+  return res.json()
 }
 
 export type ChatSession = {

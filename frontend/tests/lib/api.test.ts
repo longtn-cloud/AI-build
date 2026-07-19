@@ -137,25 +137,43 @@ describe('api client', () => {
             score: 0.9,
           },
         ],
+        has_more: false,
       }),
     })
 
-    const results = await search('hello world')
+    const response = await search('hello world')
 
     expect(globalThis.fetch).toHaveBeenCalledWith(
       expect.stringContaining('/search?q=hello%20world'),
       expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
     )
-    expect(results).toEqual([
-      {
-        document_id: '1',
-        filename: 'a.txt',
-        chunk_index: 0,
-        total_chunks: 1,
-        content: 'hello',
-        score: 0.9,
-      },
-    ])
+    expect(response).toEqual({
+      results: [
+        {
+          document_id: '1',
+          filename: 'a.txt',
+          chunk_index: 0,
+          total_chunks: 1,
+          content: 'hello',
+          score: 0.9,
+        },
+      ],
+      has_more: false,
+    })
+  })
+
+  it('search appends file_type, recent, and offset params when provided', async () => {
+    ;(globalThis.fetch as any).mockResolvedValue({
+      ok: true,
+      json: async () => ({ results: [], has_more: false }),
+    })
+
+    await search('hello', { fileType: 'pdf', recent: true, offset: 10 })
+
+    expect(globalThis.fetch).toHaveBeenCalledWith(
+      expect.stringContaining('/search?q=hello&file_type=pdf&recent=true&offset=10'),
+      expect.objectContaining({ headers: { Authorization: 'Bearer test-token' } }),
+    )
   })
 
   it('createChatSession sends an authorized POST request and returns the session', async () => {
