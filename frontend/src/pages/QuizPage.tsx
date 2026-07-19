@@ -3,7 +3,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
-import { generateQuiz, listDocuments, listQuizAttempts, submitQuizAttempt } from '../lib/api'
+import { generateQuiz, listDocuments, listQuizAttempts, submitQuizAttempt, QuizAnswer } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
 const COUNT_OPTIONS = [5, 8, 10, 15]
@@ -16,10 +16,10 @@ export function QuizPage() {
   const [numQuestions, setNumQuestions] = useState(10)
   const [quiz, setQuiz] = useState<Awaited<ReturnType<typeof generateQuiz>> | null>(null)
   const [qIndex, setQIndex] = useState(0)
-  const [selected, setSelected] = useState<number | null>(null)
-  const [answers, setAnswers] = useState<{ question_id: string; selected_option: number }[]>([])
+  const [answers, setAnswers] = useState<(QuizAnswer | null)[]>([])
   const [result, setResult] = useState<Awaited<ReturnType<typeof submitQuizAttempt>> | null>(null)
   const queryClient = useQueryClient()
+  const selected = answers[qIndex]?.selected_option ?? null
 
   const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
   const attempts = attemptsQuery.data ?? []
@@ -38,21 +38,22 @@ export function QuizPage() {
   })
   const readyDocuments = (documentsQuery.data ?? []).filter((d) => d.status === 'ready')
 
+  function startQuiz(loaded: Awaited<ReturnType<typeof generateQuiz>>) {
+    setQuiz(loaded)
+    setQIndex(0)
+    setAnswers(Array(loaded.questions.length).fill(null))
+    setResult(null)
+    setView('taking')
+  }
+
   const generateMutation = useMutation({
     mutationFn: (vars: { documentIds: string[]; numQuestions: number }) =>
       generateQuiz(vars.documentIds, vars.numQuestions),
-    onSuccess: (generated) => {
-      setQuiz(generated)
-      setQIndex(0)
-      setSelected(null)
-      setAnswers([])
-      setResult(null)
-      setView('taking')
-    },
+    onSuccess: (generated) => startQuiz(generated),
   })
 
   const submitMutation = useMutation({
-    mutationFn: (vars: { quizId: string; answers: typeof answers }) =>
+    mutationFn: (vars: { quizId: string; answers: QuizAnswer[] }) =>
       submitQuizAttempt(vars.quizId, vars.answers),
     onSuccess: (attemptResult) => {
       setResult(attemptResult)
@@ -71,21 +72,28 @@ export function QuizPage() {
   }
 
   function pickOption(index: number) {
-    if (selected !== null) return
-    setSelected(index)
+    if (!quiz) return
+    const question = quiz.questions[qIndex]
+    setAnswers((prev) => {
+      const next = [...prev]
+      next[qIndex] = { question_id: question.id, selected_option: index }
+      return next
+    })
+  }
+
+  function handlePrevious() {
+    if (qIndex === 0) return
+    setQIndex(qIndex - 1)
   }
 
   function handleNext() {
     if (selected === null || !quiz) return
-    const question = quiz.questions[qIndex]
-    const nextAnswers = [...answers, { question_id: question.id, selected_option: selected }]
-    setAnswers(nextAnswers)
     if (qIndex >= quiz.questions.length - 1) {
-      submitMutation.mutate({ quizId: quiz.id, answers: nextAnswers })
+      const finalAnswers = answers.filter((a): a is QuizAnswer => a !== null)
+      submitMutation.mutate({ quizId: quiz.id, answers: finalAnswers })
       return
     }
     setQIndex(qIndex + 1)
-    setSelected(null)
   }
 
   const generateError = generateMutation.isError ? 'Failed to generate quiz, try again' : null
@@ -260,7 +268,10 @@ export function QuizPage() {
           </div>
         </div>
 
-        <div className="mt-5 flex justify-end">
+        <div className="mt-5 flex justify-between">
+          <Button variant="secondary" onClick={handlePrevious} disabled={qIndex === 0}>
+            Previous
+          </Button>
           <Button onClick={handleNext} disabled={!revealed}>
             {qIndex >= quiz.questions.length - 1 ? 'Finish quiz' : 'Next question'}
           </Button>

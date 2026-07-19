@@ -212,4 +212,68 @@ describe('QuizPage', () => {
 
     expect(generateQuiz).not.toHaveBeenCalled()
   })
+
+  it('allows changing the selected answer before moving on', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
+    ;(generateQuiz as any).mockResolvedValue(QUIZ)
+    ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
+
+    renderQuizPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+
+    fireEvent.click(screen.getByText('7 days'))
+    fireEvent.click(screen.getByText('30 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+    fireEvent.click(screen.getByText('Service outages'))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+
+    await waitFor(() => {
+      expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [
+        { question_id: 'q-1', selected_option: 1 },
+        { question_id: 'q-2', selected_option: 1 },
+      ])
+    })
+  })
+
+  it('goes back to the previous question and keeps its answer editable', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(listDocuments as any).mockResolvedValue([READY_DOCUMENT])
+    ;(generateQuiz as any).mockResolvedValue(QUIZ)
+    ;(submitQuizAttempt as any).mockResolvedValue(RESULT)
+
+    renderQuizPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Create quiz' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Create quiz' }))
+    await waitFor(() => screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByLabelText('policy.pdf'))
+    fireEvent.click(screen.getByRole('button', { name: /Generate 10 questions/ }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled()
+    fireEvent.click(screen.getByText('30 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+
+    fireEvent.click(screen.getByRole('button', { name: 'Previous' }))
+    await waitFor(() => screen.getByText('What is the refund window?'))
+    fireEvent.click(screen.getByText('60 days'))
+    fireEvent.click(screen.getByRole('button', { name: 'Next question' }))
+    await waitFor(() => screen.getByText('What is covered?'))
+    fireEvent.click(screen.getByText('Data breaches'))
+    fireEvent.click(screen.getByRole('button', { name: 'Finish quiz' }))
+
+    await waitFor(() => {
+      expect(submitQuizAttempt).toHaveBeenCalledWith('quiz-1', [
+        { question_id: 'q-1', selected_option: 2 },
+        { question_id: 'q-2', selected_option: 0 },
+      ])
+    })
+  })
 })
