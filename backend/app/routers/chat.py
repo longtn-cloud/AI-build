@@ -18,7 +18,7 @@ NOT_FOUND_MESSAGE = (
 
 
 @router.post("/sessions", status_code=201)
-async def create_session(user_id: str = Depends(get_current_user_id)):
+def create_session(user_id: str = Depends(get_current_user_id)):
     session_id = str(uuid.uuid4())
     with get_conn() as conn:
         row = conn.execute(
@@ -53,7 +53,7 @@ def _serialize_message(row) -> dict:
 
 
 @router.post("/sessions/{session_id}/messages", status_code=201)
-async def send_message(
+def send_message(
     session_id: str,
     body: SendMessageRequest,
     user_id: str = Depends(get_current_user_id),

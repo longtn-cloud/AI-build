@@ -64,7 +64,7 @@ def _cap_chunks_per_document(rows: list, max_chunks: int) -> list:
 
 
 @router.post("/generate", status_code=201)
-async def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_user_id)):
+def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_user_id)):
     document_ids = list(dict.fromkeys(body.document_ids))
     if not document_ids:
         raise HTTPException(status_code=400, detail="document_ids must not be empty")
@@ -194,7 +194,7 @@ class SubmitAttemptRequest(BaseModel):
 
 
 @router.post("/{quiz_id}/attempts", status_code=201)
-async def submit_attempt(
+def submit_attempt(
     quiz_id: str,
     body: SubmitAttemptRequest,
     user_id: str = Depends(get_current_user_id),
@@ -276,7 +276,7 @@ async def submit_attempt(
 
 
 @router.get("/attempts")
-async def list_attempts(user_id: str = Depends(get_current_user_id)):
+def list_attempts(user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         attempt_rows = conn.execute(
             """

@@ -8,7 +8,7 @@ router = APIRouter(tags=["search"])
 
 
 @router.get("/search")
-async def search(q: str = "", user_id: str = Depends(get_current_user_id)):
+def search(q: str = "", user_id: str = Depends(get_current_user_id)):
     if not q.strip():
         raise HTTPException(status_code=400, detail="Query must not be empty")
 
