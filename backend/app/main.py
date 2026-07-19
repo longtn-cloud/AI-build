@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from app.routers import chat, documents, quiz, search
+from app.routers import chat, documents, quiz, search, teams
 
 app = FastAPI(title="Document Knowledge Assistant API")
 
@@ -16,6 +16,7 @@ app.include_router(documents.router)
 app.include_router(search.router)
 app.include_router(chat.router)
 app.include_router(quiz.router)
+app.include_router(teams.router)
 
 
 @app.get("/health")
