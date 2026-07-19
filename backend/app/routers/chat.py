@@ -12,9 +12,7 @@ from app.services.llm import answer_from_chunks, answer_with_web_search
 router = APIRouter(prefix="/chat", tags=["chat"])
 
 MIN_SIMILARITY_THRESHOLD = 0.5
-NOT_FOUND_MESSAGE = (
-    "I couldn't find relevant information in your uploaded documents to answer that question."
-)
+HISTORY_LIMIT = 10
 
 
 @router.post("/sessions", status_code=201)
@@ -48,6 +46,7 @@ def _serialize_message(row) -> dict:
         "content": row["content"],
         "citations": row["citations"],
         "used_web_search": row["used_web_search"],
+        "used_general_knowledge": row["used_general_knowledge"],
         "created_at": row["created_at"].isoformat(),
     }
 
@@ -69,21 +68,34 @@ def send_message(
         if session_row is None:
             raise HTTPException(status_code=404, detail="Chat session not found")
 
+        history_rows = conn.execute(
+            """
+            SELECT role, content FROM chat_messages
+            WHERE session_id = %s
+            ORDER BY created_at DESC
+            LIMIT %s
+            """,
+            (session_id, HISTORY_LIMIT),
+        ).fetchall()
+        history = [{"role": r["role"], "content": r["content"]} for r in reversed(history_rows)]
+
         user_message_id = str(uuid.uuid4())
         user_row = conn.execute(
             """
-            INSERT INTO chat_messages (id, session_id, role, content, citations, used_web_search)
-            VALUES (%s, %s, 'user', %s, '[]'::jsonb, false)
-            RETURNING id, role, content, citations, used_web_search, created_at
+            INSERT INTO chat_messages
+                (id, session_id, role, content, citations, used_web_search, used_general_knowledge)
+            VALUES (%s, %s, 'user', %s, '[]'::jsonb, false, false)
+            RETURNING id, role, content, citations, used_web_search, used_general_knowledge, created_at
             """,
             (user_message_id, session_id, body.content),
         ).fetchone()
 
     try:
         if body.web_search:
-            answer_text = answer_with_web_search(body.content)
+            answer_text = answer_with_web_search(body.content, history)
             citations: list[dict] = []
             used_web_search = True
+            used_general_knowledge = False
         else:
             query_embedding = embed_query(body.content)
             with get_conn() as conn:
@@ -108,23 +120,21 @@ def send_message(
                     (query_embedding, user_id, MIN_SIMILARITY_THRESHOLD),
                 ).fetchall()
 
-            if not chunk_rows:
-                answer_text = NOT_FOUND_MESSAGE
-                citations = []
-            else:
-                chunks = [
-                    {
-                        "document_id": str(r["document_id"]),
-                        "filename": r["filename"],
-                        "chunk_index": r["chunk_index"],
-                        "total_chunks": r["total_chunks"],
-                        "content": r["content"],
-                        "score": r["score"],
-                    }
-                    for r in chunk_rows
-                ]
-                answer_text = answer_from_chunks(body.content, chunks)
-                citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]
+            chunks = [
+                {
+                    "document_id": str(r["document_id"]),
+                    "filename": r["filename"],
+                    "chunk_index": r["chunk_index"],
+                    "total_chunks": r["total_chunks"],
+                    "content": r["content"],
+                    "score": r["score"],
+                }
+                for r in chunk_rows
+            ]
+            result = answer_from_chunks(body.content, chunks, history)
+            answer_text = result["answer"]
+            used_general_knowledge = result["used_general_knowledge"] or not chunks
+            citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]
             used_web_search = False
     except Exception as exc:
         raise HTTPException(
@@ -135,11 +145,19 @@ def send_message(
         assistant_message_id = str(uuid.uuid4())
         assistant_row = conn.execute(
             """
-            INSERT INTO chat_messages (id, session_id, role, content, citations, used_web_search)
-            VALUES (%s, %s, 'assistant', %s, %s, %s)
-            RETURNING id, role, content, citations, used_web_search, created_at
+            INSERT INTO chat_messages
+                (id, session_id, role, content, citations, used_web_search, used_general_knowledge)
+            VALUES (%s, %s, 'assistant', %s, %s, %s, %s)
+            RETURNING id, role, content, citations, used_web_search, used_general_knowledge, created_at
             """,
-            (assistant_message_id, session_id, answer_text, Json(citations), used_web_search),
+            (
+                assistant_message_id,
+                session_id,
+                answer_text,
+                Json(citations),
+                used_web_search,
+                used_general_knowledge,
+            ),
         ).fetchone()
 
     return {

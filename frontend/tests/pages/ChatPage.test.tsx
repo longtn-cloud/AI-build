@@ -48,6 +48,7 @@ describe('ChatPage', () => {
         content: 'What is the refund window?',
         citations: [],
         used_web_search: false,
+        used_general_knowledge: false,
         created_at: '2026-07-18T00:00:01Z',
       },
       assistant_message: {
@@ -58,6 +59,7 @@ describe('ChatPage', () => {
           { document_id: 'doc-1', filename: 'policy.pdf', chunk_index: 1, total_chunks: 3, score: 0.81 },
         ],
         used_web_search: false,
+        used_general_knowledge: false,
         created_at: '2026-07-18T00:00:02Z',
       },
     })
@@ -92,6 +94,7 @@ describe('ChatPage', () => {
         content: "What's the weather in Paris?",
         citations: [],
         used_web_search: false,
+        used_general_knowledge: false,
         created_at: '2026-07-18T00:00:01Z',
       },
       assistant_message: {
@@ -100,6 +103,7 @@ describe('ChatPage', () => {
         content: "It's sunny in Paris today.",
         citations: [],
         used_web_search: true,
+        used_general_knowledge: false,
         created_at: '2026-07-18T00:00:02Z',
       },
     })
@@ -165,5 +169,93 @@ describe('ChatPage', () => {
       )
     })
     expect(screen.getByRole('button', { name: 'Send' })).toBeDisabled()
+  })
+
+  it('renders a General knowledge badge when the answer has no document grounding', async () => {
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
+    ;(sendChatMessage as any).mockResolvedValue({
+      user_message: {
+        id: 'msg-1',
+        role: 'user',
+        content: 'What is the capital of France?',
+        citations: [],
+        used_web_search: false,
+        used_general_knowledge: false,
+        created_at: '2026-07-19T00:00:01Z',
+      },
+      assistant_message: {
+        id: 'msg-2',
+        role: 'assistant',
+        content: 'Paris is the capital of France.',
+        citations: [],
+        used_web_search: false,
+        used_general_knowledge: true,
+        created_at: '2026-07-19T00:00:02Z',
+      },
+    })
+
+    renderChatPage()
+    await waitFor(() => expect(createChatSession).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), {
+      target: { value: 'What is the capital of France?' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Paris is the capital of France.')).toBeInTheDocument()
+    })
+    expect(screen.getByText('General knowledge')).toBeInTheDocument()
+    expect(screen.queryByText('Web')).not.toBeInTheDocument()
+  })
+
+  it('renders a Documents + General knowledge badge when an answer blends both', async () => {
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
+    ;(sendChatMessage as any).mockResolvedValue({
+      user_message: {
+        id: 'msg-1',
+        role: 'user',
+        content: 'What is the refund window and is that typical?',
+        citations: [],
+        used_web_search: false,
+        used_general_knowledge: false,
+        created_at: '2026-07-19T00:00:01Z',
+      },
+      assistant_message: {
+        id: 'msg-2',
+        role: 'assistant',
+        content: 'Refunds are available within 30 days, which is fairly typical for retailers.',
+        citations: [
+          { document_id: 'doc-1', filename: 'policy.pdf', chunk_index: 1, total_chunks: 3, score: 0.81 },
+        ],
+        used_web_search: false,
+        used_general_knowledge: true,
+        created_at: '2026-07-19T00:00:02Z',
+      },
+    })
+
+    renderChatPage()
+    await waitFor(() => expect(createChatSession).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), {
+      target: { value: 'What is the refund window and is that typical?' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(
+        screen.getByText('Refunds are available within 30 days, which is fairly typical for retailers.'),
+      ).toBeInTheDocument()
+    })
+    expect(screen.getByText('Documents + General knowledge')).toBeInTheDocument()
+    expect(screen.getByText('policy.pdf — passage 2 of 3')).toBeInTheDocument()
   })
 })

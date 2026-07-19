@@ -58,11 +58,19 @@ export function ChatPage() {
                   <p className="mb-3.5 text-[15px] leading-relaxed text-sidebar">
                     {message.content}
                   </p>
-                  {message.used_web_search && (
+                  {message.used_web_search ? (
                     <div className="mb-3 inline-flex">
                       <Badge variant="blue">Web</Badge>
                     </div>
-                  )}
+                  ) : message.used_general_knowledge ? (
+                    <div className="mb-3 inline-flex">
+                      <Badge variant="blue">
+                        {message.citations.length > 0
+                          ? 'Documents + General knowledge'
+                          : 'General knowledge'}
+                      </Badge>
+                    </div>
+                  ) : null}
                   {message.citations.length > 0 && (
                     <div className="flex flex-col gap-2">
                       {message.citations.map((citation) => (

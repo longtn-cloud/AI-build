@@ -137,6 +137,7 @@ export type ChatMessage = {
   content: string
   citations: ChatCitation[]
   used_web_search: boolean
+  used_general_knowledge: boolean
   created_at: string
 }
 

@@ -1,6 +1,6 @@
 # Document Knowledge Assistant
 
-Upload documents (PDF, DOCX, TXT, Markdown), then search, chat, and generate quizzes grounded strictly in what you uploaded — no hallucination outside your own documents.
+Upload documents (PDF, DOCX, TXT, Markdown), then search, chat, and generate quizzes grounded in what you uploaded — chat answers prefer your documents and reason across them, clearly flagging any general knowledge used to fill a gap.
 
 Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/plans/` (one design/implementation-plan pair per feature: Foundation, Search, Chat Q&A, Quiz).
 
@@ -60,6 +60,8 @@ Migrations are plain SQL files in `backend/migrations/`, applied in order agains
 - `0001_init.sql` — `documents`, `chunks` (pgvector column, RLS scoped to `auth.uid()`)
 - `0002_chat.sql` — `chat_sessions`, `chat_messages`
 - `0003_quiz.sql` — `quizzes`, `quiz_questions`, `quiz_attempts`
+- `0004_search_fts.sql` — full-text search column (`chunks.content_tsv`)
+- `0005_chat_general_knowledge.sql` — `chat_messages.used_general_knowledge` flag
 
 Run them via the Supabase SQL editor or `psql "$SUPABASE_DB_URL" -f backend/migrations/000X_*.sql`, in numeric order.
 
@@ -170,7 +172,7 @@ All endpoints below (except `/health`) require a Supabase auth token and are sco
 | GET | `/documents/{id}/preview` | Preview extracted text (or native render for PDF/TXT/MD) |
 | GET | `/search?q=` | Pure retrieval: top-10 ranked passages, no LLM |
 | POST | `/chat/sessions` | Create a chat session |
-| POST | `/chat/sessions/{id}/messages` | Ask a question; grounded in retrieved chunks, or web search if opted in |
+| POST | `/chat/sessions/{id}/messages` | Ask a question; answered from retrieved chunks (falling back to flagged general knowledge), or web search if opted in |
 | POST | `/quiz/generate` | Generate a quiz (5-20 questions) from selected documents |
 | POST | `/quiz/{quiz_id}/attempts` | Submit answers and get the attempt scored |
 | GET | `/quiz/attempts` | List past quiz attempts |
@@ -178,5 +180,5 @@ All endpoints below (except `/health`) require a Supabase auth token and are sco
 ## Core invariants
 
 - **Per-user isolation:** every query touching `documents`/`chunks`/`chat_*`/`quiz_*` is scoped by `user_id`, enforced both by Postgres RLS and an explicit `WHERE` clause in application code — never rely on one alone.
-- **No hallucination:** Chat Q&A only answers from retrieved chunks above a similarity threshold; if nothing clears it, it says so instead of falling back to general knowledge. Web-search-assisted answers are visually distinguished ("Web" badge), never blended silently with document-grounded ones.
+- **Documents first, flagged fallback:** Chat Q&A reasons over retrieved chunks above a similarity threshold and prefers them; when they don't fully cover a question it may supplement with general knowledge, but that answer is clearly flagged ("General knowledge" / "Documents + General knowledge" badge) — never blended silently. Web-search-assisted answers are visually distinguished ("Web" badge) the same way.
 - **No invented quiz content:** if selected documents can't support the requested question count, fewer are generated and the user is told the actual count — never filler questions.
