@@ -217,7 +217,7 @@ export function DocumentsPage() {
                 <div>
                   <Badge variant={STATUS_VARIANT[doc.status]}>{STATUS_LABEL[doc.status]}</Badge>
                 </div>
-                <div className="flex gap-1.5 border-t border-[#EEF2F3] pt-3">
+                <div className="flex flex-wrap gap-1.5 border-t border-[#EEF2F3] pt-3">
                   {doc.status === 'ready' && (
                     <>
                       <Button variant="secondary" onClick={() => setPreviewing(doc)}>
