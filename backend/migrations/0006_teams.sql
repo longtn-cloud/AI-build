@@ -6,6 +6,8 @@ create table profiles (
 
 create or replace function handle_new_user() returns trigger
     language plpgsql
+    security definer
+    set search_path = public
     as $$
 begin
     insert into profiles (id, email) values (new.id, new.email)
@@ -68,10 +70,18 @@ create policy "teams_member" on teams
         exists (select 1 from team_members tm where tm.team_id = teams.id and tm.user_id = auth.uid())
     );
 
-create policy "team_members_member" on team_members
-    for select using (
-        exists (select 1 from team_members tm where tm.team_id = team_members.team_id and tm.user_id = auth.uid())
+create or replace function is_team_member_of(check_team_id uuid) returns boolean
+    language sql security definer stable
+    set search_path = public
+    as $$
+    select exists (
+        select 1 from team_members
+        where team_id = check_team_id and user_id = auth.uid()
     );
+$$;
+
+create policy "team_members_member" on team_members
+    for select using (is_team_member_of(team_id));
 
 create policy "document_shares_team_member" on document_shares
     for select using (
