@@ -4,6 +4,6 @@
 
 @layer base {
   body {
-    @apply bg-felt font-body text-parchment dark:bg-felt-dark;
+    @apply bg-app-bg font-sans text-ink antialiased;
   }
 }

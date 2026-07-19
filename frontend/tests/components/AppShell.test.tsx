@@ -1,19 +1,25 @@
 import { render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
-import { describe, expect, it } from 'vitest'
+import { describe, expect, it, vi } from 'vitest'
 
-import { ThemeProvider } from '../../src/contexts/ThemeContext'
+vi.mock('../../src/lib/api', () => ({
+  listDocuments: vi.fn().mockResolvedValue([]),
+}))
+
+vi.mock('../../src/contexts/AuthContext', () => ({
+  useAuth: () => ({ session: { user: { email: 'sarah@example.com' } }, signOut: vi.fn() }),
+}))
+
 import { AppShell } from '../../src/components/AppShell'
+import { renderWithQueryClient } from '../test-utils'
 
 describe('AppShell', () => {
   it('renders the nav and its children', () => {
-    render(
+    renderWithQueryClient(
       <MemoryRouter>
-        <ThemeProvider>
-          <AppShell>
-            <p>Page content</p>
-          </AppShell>
-        </ThemeProvider>
+        <AppShell>
+          <p>Page content</p>
+        </AppShell>
       </MemoryRouter>,
     )
 

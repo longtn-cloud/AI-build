@@ -5,7 +5,7 @@ export function Card({ className = '', ...props }: HTMLAttributes<HTMLDivElement
   return (
     <div
       className={twMerge(
-        'rounded-sm border border-rule bg-parchment p-4 text-ink shadow-sm dark:border-rule-dark dark:bg-parchment-dark dark:text-parchment',
+        'rounded-[14px] border border-line bg-white p-4 text-ink shadow-sm',
         className,
       )}
       {...props}

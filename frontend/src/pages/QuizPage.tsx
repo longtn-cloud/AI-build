@@ -1,40 +1,63 @@
-import { FormEvent, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
-import { Card } from '../components/ui/Card'
-import { CitationStub } from '../components/ui/CitationStub'
-import { Input } from '../components/ui/Input'
-import { Quiz, generateQuiz, listDocuments, submitQuizAttempt } from '../lib/api'
+import { generateQuiz, listDocuments, listQuizAttempts, submitQuizAttempt } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
+const COUNT_OPTIONS = [5, 8, 10, 15]
+
+type View = 'list' | 'config' | 'taking' | 'result'
+
 export function QuizPage() {
+  const [view, setView] = useState<View>('list')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [numQuestions, setNumQuestions] = useState(10)
-  const [quiz, setQuiz] = useState<Quiz | null>(null)
-  const [answers, setAnswers] = useState<Record<string, number>>({})
+  const [quiz, setQuiz] = useState<Awaited<ReturnType<typeof generateQuiz>> | null>(null)
+  const [qIndex, setQIndex] = useState(0)
+  const [selected, setSelected] = useState<number | null>(null)
+  const [answers, setAnswers] = useState<{ question_id: string; selected_option: number }[]>([])
+  const [result, setResult] = useState<Awaited<ReturnType<typeof submitQuizAttempt>> | null>(null)
   const queryClient = useQueryClient()
 
-  const documentsQuery = useQuery({ queryKey: queryKeys.documents, queryFn: listDocuments })
-  const documents = documentsQuery.data ?? []
+  const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
+  const attempts = attemptsQuery.data ?? []
+  const stats = useMemo(() => {
+    if (attempts.length === 0) return { count: 0, avg: 0 }
+    const avg = Math.round(
+      (attempts.reduce((sum, a) => sum + a.score / a.total_questions, 0) / attempts.length) * 100,
+    )
+    return { count: attempts.length, avg }
+  }, [attempts])
 
-  const submitMutation = useMutation({
-    mutationFn: (vars: {
-      quizId: string
-      answers: { question_id: string; selected_option: number }[]
-    }) => submitQuizAttempt(vars.quizId, vars.answers),
-    onSuccess: () => queryClient.invalidateQueries({ queryKey: queryKeys.quizAttempts }),
+  const documentsQuery = useQuery({
+    queryKey: queryKeys.documents,
+    queryFn: listDocuments,
+    enabled: view === 'config',
   })
+  const readyDocuments = (documentsQuery.data ?? []).filter((d) => d.status === 'ready')
 
   const generateMutation = useMutation({
     mutationFn: (vars: { documentIds: string[]; numQuestions: number }) =>
       generateQuiz(vars.documentIds, vars.numQuestions),
     onSuccess: (generated) => {
       setQuiz(generated)
-      setAnswers({})
-      submitMutation.reset()
+      setQIndex(0)
+      setSelected(null)
+      setAnswers([])
+      setResult(null)
+      setView('taking')
+    },
+  })
+
+  const submitMutation = useMutation({
+    mutationFn: (vars: { quizId: string; answers: typeof answers }) =>
+      submitQuizAttempt(vars.quizId, vars.answers),
+    onSuccess: (attemptResult) => {
+      setResult(attemptResult)
+      setView('result')
+      queryClient.invalidateQueries({ queryKey: queryKeys.quizAttempts })
     },
   })
 
@@ -42,160 +65,233 @@ export function QuizPage() {
     setSelectedIds((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]))
   }
 
-  function handleGenerate(event: FormEvent) {
-    event.preventDefault()
+  function handleGenerate() {
     if (selectedIds.length === 0) return
     generateMutation.mutate({ documentIds: selectedIds, numQuestions })
   }
 
-  function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (!quiz) return
-    const submittedAnswers = quiz.questions
-      .filter((q) => q.id in answers)
-      .map((q) => ({ question_id: q.id, selected_option: answers[q.id] }))
-    submitMutation.mutate({ quizId: quiz.id, answers: submittedAnswers })
+  function pickOption(index: number) {
+    if (selected !== null) return
+    setSelected(index)
   }
 
-  const result = submitMutation.data ?? null
-  const error = generateMutation.isError
-    ? 'Failed to generate quiz, try again'
-    : submitMutation.isError
-      ? 'Failed to submit quiz, try again'
-      : null
-  const loading = generateMutation.isPending || submitMutation.isPending
+  function handleNext() {
+    if (selected === null || !quiz) return
+    const question = quiz.questions[qIndex]
+    const nextAnswers = [...answers, { question_id: question.id, selected_option: selected }]
+    setAnswers(nextAnswers)
+    if (qIndex >= quiz.questions.length - 1) {
+      submitMutation.mutate({ quizId: quiz.id, answers: nextAnswers })
+      return
+    }
+    setQIndex(qIndex + 1)
+    setSelected(null)
+  }
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="font-display text-2xl font-semibold text-parchment">Quiz</h1>
-        <Link
-          to="/quiz/history"
-          className="font-mono text-xs uppercase tracking-wide text-brass hover:underline"
-        >
-          Past attempts
-        </Link>
-      </div>
-      {error && <Alert>{error}</Alert>}
+  const generateError = generateMutation.isError ? 'Failed to generate quiz, try again' : null
 
-      {!quiz && (
-        <form onSubmit={handleGenerate} className="space-y-4">
-          <fieldset className="space-y-2">
-            <legend className="font-mono text-xs uppercase tracking-wide text-parchment/60">
-              Select documents
-            </legend>
-            {documents
-              .filter((doc) => doc.status === 'ready')
-              .map((doc) => (
-                <label
-                  key={doc.id}
-                  className="flex items-center gap-2 rounded-sm border border-rule bg-parchment p-3 font-body text-sm text-ink dark:border-rule-dark dark:bg-parchment-dark dark:text-parchment"
-                >
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.includes(doc.id)}
-                    onChange={() => toggleDocument(doc.id)}
-                    className="h-4 w-4 rounded border-rule text-brass focus:ring-brass"
-                  />
-                  {doc.filename}
-                </label>
-              ))}
-          </fieldset>
-          <div>
-            <label
-              htmlFor="num-questions"
-              className="mb-1 block font-mono text-xs uppercase tracking-wide text-parchment/60"
-            >
-              Number of questions
-            </label>
-            <Input
-              id="num-questions"
-              type="number"
-              min={5}
-              max={20}
-              value={numQuestions}
-              onChange={(e) => setNumQuestions(Number(e.target.value))}
-              className="w-24"
-            />
+  if (view === 'list') {
+    return (
+      <div className="mx-auto max-w-[980px] px-8 pb-12 pt-7">
+        <div className="mb-7 flex gap-4">
+          <div className="flex-1 rounded-[14px] border border-line bg-white p-5">
+            <div className="mb-2 text-sm font-semibold text-muted">Quizzes taken</div>
+            <div className="text-3xl font-extrabold tracking-tight">{stats.count}</div>
           </div>
-          <Button type="submit" disabled={loading}>
-            Generate Quiz
-          </Button>
-        </form>
-      )}
+          <div className="flex-1 rounded-[14px] border border-line bg-white p-5">
+            <div className="mb-2 text-sm font-semibold text-muted">Average score</div>
+            <div className="text-3xl font-extrabold tracking-tight text-accent">{stats.avg}%</div>
+          </div>
+        </div>
 
-      {quiz && !result && (
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {quiz.actual_count < quiz.requested_count && (
-            <p className="font-body text-sm text-amber-400">
-              Generated {quiz.actual_count} of the requested {quiz.requested_count} questions — the
-              selected documents didn't have enough distinct content for more.
+        <div className="mb-7 flex items-center gap-5 rounded-2xl bg-gradient-to-r from-sidebar to-sidebar-panel p-6">
+          <div className="flex-1">
+            <h2 className="mb-1.5 text-lg font-extrabold text-white">Generate a new quiz</h2>
+            <p className="text-sm leading-relaxed text-[#AEBBC2]">
+              Pick one or more documents and we&apos;ll build multiple-choice questions grounded
+              strictly in their content.
             </p>
-          )}
-          {quiz.questions.map((q) => (
-            <Card key={q.id}>
-              <fieldset className="space-y-2">
-                <legend className="font-display font-medium text-ink dark:text-parchment">
-                  {q.question}
-                </legend>
-                {q.options.map((option, index) => (
-                  <label
-                    key={option}
-                    className="flex items-center gap-2 font-body text-sm text-ink dark:text-parchment"
-                  >
-                    <input
-                      type="radio"
-                      name={q.id}
-                      value={index}
-                      checked={answers[q.id] === index}
-                      onChange={() => setAnswers((prev) => ({ ...prev, [q.id]: index }))}
-                      className="h-4 w-4 border-rule text-brass focus:ring-brass"
-                    />
-                    {option}
-                  </label>
-                ))}
-              </fieldset>
-            </Card>
-          ))}
-          <Button type="submit" disabled={loading}>
-            Submit
-          </Button>
-        </form>
-      )}
+          </div>
+          <Button onClick={() => setView('config')}>Create quiz</Button>
+        </div>
 
-      {result && (
-        <Card className="space-y-4">
-          <p className="font-display text-lg font-semibold text-ink dark:text-parchment">
-            {result.score} / {result.total_questions}
-          </p>
-          <ul className="space-y-3">
-            {result.results.map((r) => (
-              <li
-                key={r.question_id}
+        <div className="mb-3.5 text-xs font-bold uppercase tracking-wide text-faint">
+          Recent attempts
+        </div>
+        {attempts.length === 0 ? (
+          <p className="text-sm text-muted">No quiz attempts yet</p>
+        ) : (
+          <div className="flex flex-col gap-2.5">
+            {attempts.map((a) => (
+              <div
+                key={a.id}
+                className="flex items-center gap-4 rounded-[13px] border border-line bg-white px-5 py-4"
+              >
+                <div className="flex-1 text-sm font-bold">{a.document_filenames.join(', ')}</div>
+                <div className="text-sm font-bold">
+                  {a.score} / {a.total_questions}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    )
+  }
+
+  if (view === 'config') {
+    return (
+      <div className="mx-auto max-w-[720px] px-8 pb-12 pt-7">
+        <button onClick={() => setView('list')} className="mb-4 text-sm font-semibold text-muted">
+          ← Back to quizzes
+        </button>
+        <h2 className="mb-5 text-xl font-extrabold tracking-tight">Generate a quiz</h2>
+        {generateError && (
+          <div className="mb-4">
+            <Alert>{generateError}</Alert>
+          </div>
+        )}
+
+        <div className="mb-2.5 text-xs font-bold text-muted">1 · Choose source documents</div>
+        <div className="mb-6 flex flex-col gap-2">
+          {readyDocuments.map((doc) => {
+            const checked = selectedIds.includes(doc.id)
+            return (
+              <label
+                key={doc.id}
                 className={
-                  r.is_correct
-                    ? 'rounded-sm border border-emerald-300 bg-emerald-50 p-3 dark:border-emerald-800 dark:bg-emerald-950'
-                    : 'rounded-sm border border-red-300 bg-red-50 p-3 dark:border-red-800 dark:bg-red-950'
+                  checked
+                    ? 'flex items-center gap-3 rounded-[11px] border-[1.5px] border-accent bg-white px-4 py-3.5'
+                    : 'flex items-center gap-3 rounded-[11px] border-[1.5px] border-line bg-white px-4 py-3.5'
                 }
               >
-                <p className="font-body font-medium text-ink dark:text-parchment">{r.question}</p>
-                <p className="font-body text-sm text-ink/80 dark:text-parchment/80">
-                  your answer: {r.selected_option === null ? '(none)' : r.options[r.selected_option]}
-                </p>
-                <p className="font-body text-sm text-ink/80 dark:text-parchment/80">
-                  correct answer: {r.options[r.correct_answer]}
-                </p>
-                <div className="mt-1">
-                  <CitationStub>
-                    {r.source_reference.filename} — passage {r.source_reference.chunk_index + 1} of{' '}
-                    {r.source_reference.total_chunks}
-                  </CitationStub>
-                </div>
-              </li>
-            ))}
-          </ul>
-        </Card>
-      )}
-    </div>
-  )
+                <input
+                  type="checkbox"
+                  checked={checked}
+                  onChange={() => toggleDocument(doc.id)}
+                  aria-label={doc.filename}
+                  className="h-5 w-5 rounded border-line text-accent focus:ring-accent"
+                />
+                <span className="flex-1 text-sm font-semibold">{doc.filename}</span>
+              </label>
+            )
+          })}
+        </div>
+
+        <div className="mb-2.5 text-xs font-bold text-muted">2 · Number of questions</div>
+        <div className="mb-8 flex gap-2">
+          {COUNT_OPTIONS.map((n) => (
+            <button
+              key={n}
+              onClick={() => setNumQuestions(n)}
+              className={
+                numQuestions === n
+                  ? 'rounded-[10px] border-[1.5px] border-accent bg-ok-bg px-5 py-2.5 text-sm font-semibold text-accent-hover'
+                  : 'rounded-[10px] border-[1.5px] border-line bg-white px-5 py-2.5 text-sm font-semibold text-muted'
+              }
+            >
+              {n}
+            </button>
+          ))}
+        </div>
+
+        <Button onClick={handleGenerate} className="w-full" disabled={generateMutation.isPending}>
+          Generate {numQuestions} questions
+        </Button>
+      </div>
+    )
+  }
+
+  if (view === 'taking' && quiz) {
+    const question = quiz.questions[qIndex]
+    const revealed = selected !== null
+    return (
+      <div className="mx-auto max-w-[680px] px-8 pb-12 pt-7">
+        <div className="mb-2 flex items-center gap-3.5">
+          <button onClick={() => setView('list')} className="text-sm font-semibold text-faint">
+            ✕ Exit
+          </button>
+          <span className="flex-1" />
+          <span className="text-sm font-semibold text-muted">
+            Question {qIndex + 1} of {quiz.questions.length}
+          </span>
+        </div>
+        <div className="mb-6 h-1.5 overflow-hidden rounded-full bg-line">
+          <div
+            className="h-full rounded-full bg-accent transition-all"
+            style={{
+              width: `${Math.round(((qIndex + (revealed ? 1 : 0)) / quiz.questions.length) * 100)}%`,
+            }}
+          />
+        </div>
+
+        {qIndex === 0 && quiz.actual_count < quiz.requested_count && (
+          <p className="mb-4 text-sm text-warn">
+            Generated {quiz.actual_count} of the requested {quiz.requested_count} questions — the
+            selected documents didn&apos;t have enough distinct content for more.
+          </p>
+        )}
+
+        <div className="rounded-[18px] border border-line bg-white p-7 shadow-sm">
+          <h2 className="mb-6 text-xl font-bold leading-snug">{question.question}</h2>
+          <div className="flex flex-col gap-2.5">
+            {question.options.map((option, index) => {
+              const isSelected = selected === index
+              const style = !revealed
+                ? isSelected
+                  ? 'border-[1.5px] border-accent bg-ok-bg'
+                  : 'border-[1.5px] border-line bg-white'
+                : isSelected
+                  ? 'border-[1.5px] border-accent bg-ok-bg'
+                  : 'border-[1.5px] border-line bg-white opacity-60'
+              return (
+                <button
+                  key={option}
+                  onClick={() => pickOption(index)}
+                  className={`flex w-full items-center gap-3 rounded-xl px-4 py-3.5 text-left text-[14.5px] font-medium ${style}`}
+                >
+                  <span className="flex h-[26px] w-[26px] flex-shrink-0 items-center justify-center rounded-lg bg-app-bg text-sm font-bold">
+                    {String.fromCharCode(65 + index)}
+                  </span>
+                  <span className="flex-1">{option}</span>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+
+        <div className="mt-5 flex justify-end">
+          <Button onClick={handleNext} disabled={!revealed}>
+            {qIndex >= quiz.questions.length - 1 ? 'Finish quiz' : 'Next question'}
+          </Button>
+        </div>
+      </div>
+    )
+  }
+
+  if (view === 'result' && result) {
+    const pct = Math.round((result.score / result.total_questions) * 100)
+    return (
+      <div className="mx-auto max-w-[560px] px-8 pb-12 pt-10 text-center">
+        <div className="mx-auto mb-6 flex h-[118px] w-[118px] items-center justify-center rounded-full bg-app-bg">
+          <span className="text-3xl font-extrabold tracking-tight">{result.score}</span>
+        </div>
+        <h2 className="mb-2 text-2xl font-extrabold tracking-tight">
+          {pct >= 75 ? 'Great work!' : pct >= 50 ? 'Nice effort' : 'Keep practicing'}
+        </h2>
+        <p className="mb-6 text-[15px] text-muted">
+          You answered <strong className="text-ink">{result.score}</strong> of{' '}
+          {result.total_questions} questions correctly.
+        </p>
+        <div className="flex justify-center gap-3">
+          <Button variant="secondary" onClick={() => setView('config')}>
+            Retake quiz
+          </Button>
+          <Button onClick={() => setView('list')}>Back to quizzes</Button>
+        </div>
+      </div>
+    )
+  }
+
+  return null
 }
