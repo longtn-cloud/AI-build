@@ -1,5 +1,5 @@
-import { screen, waitFor } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
+import { screen, waitFor, fireEvent } from '@testing-library/react'
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 
 import { renderWithQueryClient } from '../test-utils'
@@ -11,10 +11,18 @@ vi.mock('../../src/lib/api', () => ({
 import { listQuizAttempts } from '../../src/lib/api'
 import { QuizHistoryPage } from '../../src/pages/QuizHistoryPage'
 
+function RetakeRouteProbe() {
+  const location = useLocation()
+  return <div>retake page for {location.pathname}</div>
+}
+
 function renderQuizHistoryPage() {
   return renderWithQueryClient(
-    <MemoryRouter>
-      <QuizHistoryPage />
+    <MemoryRouter initialEntries={['/quiz/history']}>
+      <Routes>
+        <Route path="/quiz/history" element={<QuizHistoryPage />} />
+        <Route path="/quiz/:quizId/retake" element={<RetakeRouteProbe />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -56,6 +64,27 @@ describe('QuizHistoryPage', () => {
 
     await waitFor(() => {
       expect(screen.getByRole('alert')).toHaveTextContent('Failed to load quiz history, try again')
+    })
+  })
+
+  it('navigates to the retake route when Retake is clicked', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([
+      {
+        id: 'attempt-1',
+        quiz_id: 'quiz-1',
+        score: 7,
+        total_questions: 10,
+        completed_at: '2026-07-18T12:05:00Z',
+        document_filenames: ['policy.pdf'],
+      },
+    ])
+
+    renderQuizHistoryPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Retake' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Retake' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('retake page for /quiz/quiz-1/retake')).toBeInTheDocument()
     })
   })
 })

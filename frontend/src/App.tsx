@@ -58,6 +58,16 @@ export function App() {
           }
         />
         <Route
+          path="/quiz/:quizId/retake"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <QuizPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
           path="/chat"
           element={
             <ProtectedRoute>

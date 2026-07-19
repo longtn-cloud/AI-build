@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useParams } from 'react-router-dom'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
-import { generateQuiz, listDocuments, listQuizAttempts, submitQuizAttempt, QuizAnswer } from '../lib/api'
+import { generateQuiz, getQuiz, listDocuments, listQuizAttempts, submitQuizAttempt, QuizAnswer } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
 const COUNT_OPTIONS = [5, 8, 10, 15]
@@ -20,6 +21,21 @@ export function QuizPage() {
   const [result, setResult] = useState<Awaited<ReturnType<typeof submitQuizAttempt>> | null>(null)
   const queryClient = useQueryClient()
   const selected = answers[qIndex]?.selected_option ?? null
+
+  const { quizId: retakeQuizId } = useParams<{ quizId?: string }>()
+
+  const retakeQuery = useQuery({
+    queryKey: retakeQuizId ? queryKeys.quiz(retakeQuizId) : queryKeys.quiz('none'),
+    queryFn: () => getQuiz(retakeQuizId as string),
+    enabled: !!retakeQuizId,
+  })
+
+  useEffect(() => {
+    if (retakeQuery.data) {
+      startQuiz(retakeQuery.data)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [retakeQuery.data])
 
   const attemptsQuery = useQuery({ queryKey: queryKeys.quizAttempts, queryFn: listQuizAttempts })
   const attempts = attemptsQuery.data ?? []
@@ -97,6 +113,18 @@ export function QuizPage() {
   }
 
   const generateError = generateMutation.isError ? 'Failed to generate quiz, try again' : null
+
+  if (retakeQuizId && !quiz) {
+    return (
+      <div className="mx-auto max-w-[680px] px-8 pb-12 pt-7">
+        {retakeQuery.isError ? (
+          <Alert>Failed to load quiz, try again</Alert>
+        ) : (
+          <p className="text-sm text-muted">Loading quiz…</p>
+        )}
+      </div>
+    )
+  }
 
   if (view === 'list') {
     return (

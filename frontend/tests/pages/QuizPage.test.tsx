@@ -8,21 +8,34 @@ vi.mock('../../src/lib/api', () => ({
   listDocuments: vi.fn(),
   listQuizAttempts: vi.fn(),
   generateQuiz: vi.fn(),
+  getQuiz: vi.fn(),
   submitQuizAttempt: vi.fn(),
 }))
 
 import {
   generateQuiz,
+  getQuiz,
   listDocuments,
   listQuizAttempts,
   submitQuizAttempt,
 } from '../../src/lib/api'
+import { Route, Routes } from 'react-router-dom'
 import { QuizPage } from '../../src/pages/QuizPage'
 
 function renderQuizPage() {
   return renderWithQueryClient(
     <MemoryRouter>
       <QuizPage />
+    </MemoryRouter>,
+  )
+}
+
+function renderQuizPageAt(path: string) {
+  return renderWithQueryClient(
+    <MemoryRouter initialEntries={[path]}>
+      <Routes>
+        <Route path="/quiz/:quizId/retake" element={<QuizPage />} />
+      </Routes>
     </MemoryRouter>,
   )
 }
@@ -275,5 +288,17 @@ describe('QuizPage', () => {
         { question_id: 'q-2', selected_option: 0 },
       ])
     })
+  })
+
+  it('loads a persisted quiz and starts taking it when visited via the retake route', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(getQuiz as any).mockResolvedValue(QUIZ)
+
+    renderQuizPageAt('/quiz/quiz-1/retake')
+
+    await waitFor(() => {
+      expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
+    })
+    expect(getQuiz).toHaveBeenCalledWith('quiz-1')
   })
 })
