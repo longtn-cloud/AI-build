@@ -10,7 +10,7 @@ logger = logging.getLogger(__name__)
 
 _client = genai.Client(api_key=settings.gemini_api_key)
 
-MODEL = "gemini-2.5-flash"
+MODEL = "gemini-flash-latest"
 
 
 def llm_error_response(exc: Exception, fallback_detail: str) -> tuple[int, str]:
