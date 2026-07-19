@@ -228,3 +228,44 @@ def test_list_attempts_shows_deleted_document_placeholder():
     assert response.status_code == 200
     attempts = response.json()["attempts"]
     assert attempts[0]["document_filenames"] == ["(deleted document)"]
+
+
+def test_submit_attempt_allows_team_member_on_shared_quiz():
+    owner_id, owner_headers = _create_user()
+    member_id, member_headers = _create_user()
+    team_id = client.post("/teams", json={"name": "Team"}, headers=owner_headers).json()["id"]
+    client.post(f"/teams/{team_id}/members", json={"user_id": member_id}, headers=owner_headers)
+    document_id = _create_document(owner_id, "policy.txt")
+    quiz_id, question_ids = _create_quiz_with_questions(
+        owner_id, document_id, [{"question": "Q1", "options": ["a", "b", "c", "d"], "correct_answer": 0}]
+    )
+    client.post(f"/quiz/{quiz_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    response = client.post(
+        f"/quiz/{quiz_id}/attempts",
+        json={"answers": [{"question_id": question_ids[0], "selected_option": 0}]},
+        headers=member_headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["score"] == 1
+
+
+def test_list_attempts_reports_shared_team_ids():
+    owner_id, owner_headers = _create_user()
+    team_id = client.post("/teams", json={"name": "Team"}, headers=owner_headers).json()["id"]
+    document_id = _create_document(owner_id, "policy.txt")
+    quiz_id, question_ids = _create_quiz_with_questions(
+        owner_id, document_id, [{"question": "Q1", "options": ["a", "b", "c", "d"], "correct_answer": 0}]
+    )
+    client.post(
+        f"/quiz/{quiz_id}/attempts",
+        json={"answers": [{"question_id": question_ids[0], "selected_option": 0}]},
+        headers=owner_headers,
+    )
+    client.post(f"/quiz/{quiz_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    response = client.get("/quiz/attempts", headers=owner_headers)
+
+    assert response.status_code == 200
+    assert response.json()["attempts"][0]["shared_team_ids"] == [team_id]

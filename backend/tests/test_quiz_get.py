@@ -131,3 +131,20 @@ def test_get_quiz_still_allows_get_attempts_route_to_match():
 
     assert response.status_code == 200
     assert response.json()["attempts"][0]["quiz_id"] == quiz_id
+
+
+def test_get_shared_quiz_is_accessible_to_team_members():
+    owner_id, owner_headers = _create_user()
+    member_id, member_headers = _create_user()
+    team_id = client.post("/teams", json={"name": "Team"}, headers=owner_headers).json()["id"]
+    client.post(f"/teams/{team_id}/members", json={"user_id": member_id}, headers=owner_headers)
+    document_id = _create_document(owner_id, "policy.txt")
+    quiz_id, _ = _create_quiz_with_questions(
+        owner_id, document_id, [{"question": "Q1", "options": ["a", "b", "c", "d"], "correct_answer": 0}]
+    )
+    client.post(f"/quiz/{quiz_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    response = client.get(f"/quiz/{quiz_id}", headers=member_headers)
+
+    assert response.status_code == 200
+    assert response.json()["id"] == quiz_id

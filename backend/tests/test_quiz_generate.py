@@ -279,3 +279,32 @@ def test_generate_quiz_passes_requested_language_to_llm(monkeypatch):
 
     assert response.status_code == 201
     generate_mock.assert_called_once_with(generate_mock.call_args[0][0], 5, "en")
+
+
+def _create_team_with_member(admin_headers: dict, member_id: str) -> str:
+    team_id = client.post("/teams", json={"name": "Team"}, headers=admin_headers).json()["id"]
+    client.post(f"/teams/{team_id}/members", json={"user_id": member_id}, headers=admin_headers)
+    return team_id
+
+
+def test_generate_quiz_allows_documents_shared_with_caller_team(monkeypatch):
+    from app.routers import quiz as quiz_router
+
+    owner_id, owner_headers = _create_user()
+    member_id, member_headers = _create_user()
+    team_id = _create_team_with_member(owner_headers, member_id)
+    document_id = _create_document_with_chunks(owner_id, "shared.txt", 3)
+    client.post(f"/documents/{document_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    questions = [_valid_question(document_id, i % 3) for i in range(5)]
+    generate_mock = MagicMock(return_value=questions)
+    monkeypatch.setattr(quiz_router, "generate_quiz_questions", generate_mock)
+
+    response = client.post(
+        "/quiz/generate",
+        json={"document_ids": [document_id], "num_questions": 5},
+        headers=member_headers,
+    )
+
+    assert response.status_code == 201
+    assert response.json()["actual_count"] == 5
