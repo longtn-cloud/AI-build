@@ -41,16 +41,16 @@ describe('SearchPage', () => {
     })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
       expect(screen.getByText(byText('p', 'quarterly revenue figures'))).toBeInTheDocument()
     })
     expect(screen.getByText('report.pdf')).toBeInTheDocument()
-    expect(screen.getByText(byText('p', 'passage 3 of 5'))).toBeInTheDocument()
+    expect(screen.getByText(byText('p', 'đoạn 3 trên 5'))).toBeInTheDocument()
     expect(search).toHaveBeenCalledWith('revenue', { fileType: undefined, recent: false, offset: 0 })
   })
 
@@ -78,10 +78,10 @@ describe('SearchPage', () => {
     })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
       expect(screen.getAllByText('report.pdf')).toHaveLength(1)
@@ -106,10 +106,10 @@ describe('SearchPage', () => {
     })
 
     const { container } = renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue figures' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
       expect(container.querySelectorAll('mark')).toHaveLength(3)
@@ -122,13 +122,13 @@ describe('SearchPage', () => {
     ;(search as any).mockResolvedValue({ results: [], has_more: false })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'nothing matches' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
-      expect(screen.getByText('No results found')).toBeInTheDocument()
+      expect(screen.getByText('Không tìm thấy kết quả')).toBeInTheDocument()
     })
   })
 
@@ -136,19 +136,19 @@ describe('SearchPage', () => {
     ;(search as any).mockRejectedValue(new Error('Search failed'))
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
-      expect(screen.getByRole('alert')).toHaveTextContent('Search failed, try again')
+      expect(screen.getByRole('alert')).toHaveTextContent('Tìm kiếm thất bại, vui lòng thử lại')
     })
   })
 
   it('does not search on an empty query', () => {
     renderSearchPage()
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
     expect(search).not.toHaveBeenCalled()
   })
 
@@ -172,17 +172,17 @@ describe('SearchPage', () => {
     await waitFor(() => {
       expect(search).toHaveBeenCalledWith('revenue', { fileType: undefined, recent: false, offset: 0 })
     })
-    expect(screen.getByLabelText('Search your documents')).toHaveValue('revenue')
+    expect(screen.getByLabelText('Tìm kiếm tài liệu của bạn')).toHaveValue('revenue')
   })
 
   it('refetches with the selected file type filter', async () => {
     ;(search as any).mockResolvedValue({ results: [], has_more: false })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
     await waitFor(() => expect(search).toHaveBeenCalledTimes(1))
 
     fireEvent.click(screen.getByRole('button', { name: 'PDF' }))
@@ -196,13 +196,13 @@ describe('SearchPage', () => {
     ;(search as any).mockResolvedValue({ results: [], has_more: false })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
     await waitFor(() => expect(search).toHaveBeenCalledTimes(1))
 
-    fireEvent.click(screen.getByRole('button', { name: 'Recent' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Gần đây' }))
 
     await waitFor(() => {
       expect(search).toHaveBeenCalledWith('revenue', { fileType: undefined, recent: true, offset: 0 })
@@ -230,23 +230,23 @@ describe('SearchPage', () => {
       })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'passage' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
 
     await waitFor(() => {
       expect(screen.getByText(byText('p', 'passage 2'))).toBeInTheDocument()
     })
     expect(screen.queryByText(byText('p', 'passage 5'))).not.toBeInTheDocument()
-    expect(screen.getByText('+2 more passages in this document')).toBeInTheDocument()
+    expect(screen.getByText('+2 đoạn khác trong tài liệu này')).toBeInTheDocument()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xem thêm' }))
 
     await waitFor(() => {
       expect(screen.getByText(byText('p', 'passage 5'))).toBeInTheDocument()
     })
-    expect(screen.getByText('+4 more passages in this document')).toBeInTheDocument()
+    expect(screen.getByText('+4 đoạn khác trong tài liệu này')).toBeInTheDocument()
   })
 
   it('loads more results and appends them', async () => {
@@ -279,19 +279,19 @@ describe('SearchPage', () => {
       })
 
     renderSearchPage()
-    fireEvent.change(screen.getByLabelText('Search your documents'), {
+    fireEvent.change(screen.getByLabelText('Tìm kiếm tài liệu của bạn'), {
       target: { value: 'revenue' },
     })
-    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Tìm kiếm' }))
     await waitFor(() => expect(screen.getByText('a.pdf')).toBeInTheDocument())
 
-    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Xem thêm' }))
 
     await waitFor(() => {
       expect(screen.getByText('b.pdf')).toBeInTheDocument()
     })
     expect(screen.getByText('a.pdf')).toBeInTheDocument()
     expect(search).toHaveBeenCalledWith('revenue', { fileType: undefined, recent: false, offset: 1 })
-    expect(screen.queryByRole('button', { name: 'Load more' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Xem thêm' })).not.toBeInTheDocument()
   })
 })

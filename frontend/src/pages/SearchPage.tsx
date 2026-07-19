@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { useMutation } from '@tanstack/react-query'
+import { useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
@@ -8,12 +9,14 @@ import { Card } from '../components/ui/Card'
 import { Input } from '../components/ui/Input'
 import { search, SearchFileType, SearchResult } from '../lib/api'
 
-const FILE_TYPES: { id: SearchFileType | ''; label: string }[] = [
-  { id: '', label: 'All types' },
-  { id: 'pdf', label: 'PDF' },
-  { id: 'docx', label: 'DOCX' },
-  { id: 'text', label: 'Text' },
-]
+const FILE_TYPE_IDS: (SearchFileType | '')[] = ['', 'pdf', 'docx', 'text']
+
+const FILE_TYPE_LABEL_KEYS: Record<SearchFileType | '', string> = {
+  '': 'fileTypes.all',
+  pdf: 'fileTypes.pdf',
+  docx: 'fileTypes.docx',
+  text: 'fileTypes.text',
+}
 
 const PASSAGES_SHOWN = 3
 
@@ -56,6 +59,7 @@ function groupByDocument(results: SearchResult[]): SearchResultGroup[] {
 }
 
 export function SearchPage() {
+  const { t } = useTranslation('search')
   const location = useLocation()
   const initialQuery = (location.state as { query?: string } | null)?.query ?? ''
   const [query, setQuery] = useState(initialQuery)
@@ -129,32 +133,32 @@ export function SearchPage() {
       >
         <div className="flex-1">
           <label htmlFor="search-input" className="sr-only">
-            Search your documents
+            {t('inputLabel')}
           </label>
           <Input
             id="search-input"
             value={query}
             onChange={(e) => setQuery(e.target.value)}
-            placeholder="Search across all your documents…"
+            placeholder={t('inputPlaceholder')}
             className="border-none bg-transparent py-3 shadow-none focus:ring-0"
           />
         </div>
-        <Button type="submit">Search</Button>
+        <Button type="submit">{t('searchButton')}</Button>
       </form>
 
       <div className="my-4 flex flex-wrap items-center gap-2">
-        {FILE_TYPES.map((t) => (
+        {FILE_TYPE_IDS.map((id) => (
           <button
-            key={t.id}
+            key={id}
             type="button"
-            onClick={() => handleFileTypeChange(t.id)}
+            onClick={() => handleFileTypeChange(id)}
             className={
-              fileType === t.id
+              fileType === id
                 ? 'rounded-full border border-sidebar bg-sidebar px-3.5 py-1.5 text-sm font-semibold text-white'
                 : 'rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-semibold text-muted'
             }
           >
-            {t.label}
+            {t(FILE_TYPE_LABEL_KEYS[id])}
           </button>
         ))}
         <button
@@ -167,14 +171,14 @@ export function SearchPage() {
               : 'rounded-full border border-line bg-white px-3.5 py-1.5 text-sm font-semibold text-muted'
           }
         >
-          Recent
+          {t('recent')}
         </button>
       </div>
 
-      {searchMutation.isError && <Alert>Search failed, try again</Alert>}
-      {searchMutation.isPending && <p className="text-sm text-muted">Searching...</p>}
+      {searchMutation.isError && <Alert>{t('errors.searchFailed')}</Alert>}
+      {searchMutation.isPending && <p className="text-sm text-muted">{t('searching')}</p>}
       {results !== null && !searchMutation.isPending && groups.length === 0 && (
-        <p className="text-sm text-muted">No results found</p>
+        <p className="text-sm text-muted">{t('noResults')}</p>
       )}
       {groups.length > 0 && (
         <ul className="space-y-3">
@@ -184,14 +188,14 @@ export function SearchPage() {
                 <div className="flex items-center justify-between gap-2">
                   <span className="font-mono font-bold text-muted">{group.filename}</span>
                   <span className="rounded-full bg-app-bg px-2 py-0.5 text-xs font-semibold text-muted">
-                    {Math.round(group.score * 100)}% match
+                    {t('matchPercent', { pct: Math.round(group.score * 100) })}
                   </span>
                 </div>
                 <ul className="space-y-2">
                   {group.passages.slice(0, visiblePerGroup).map((passage) => (
                     <li key={passage.chunk_index}>
                       <p className="text-xs text-faint">
-                        passage {passage.chunk_index + 1} of {passage.total_chunks}
+                        {t('passageOf', { index: passage.chunk_index + 1, total: passage.total_chunks })}
                       </p>
                       <p className="text-[14.5px] leading-relaxed text-ink">
                         {highlight(passage.content, query)}
@@ -201,7 +205,7 @@ export function SearchPage() {
                 </ul>
                 {group.passages.length > visiblePerGroup && (
                   <p className="text-xs text-faint">
-                    +{group.passages.length - visiblePerGroup} more passages in this document
+                    {t('morePassages', { count: group.passages.length - visiblePerGroup })}
                   </p>
                 )}
               </Card>
@@ -212,7 +216,7 @@ export function SearchPage() {
       {hasMore && !searchMutation.isPending && (
         <div className="mt-4 flex justify-center">
           <Button variant="secondary" onClick={loadMore}>
-            Load more
+            {t('loadMore')}
           </Button>
         </div>
       )}
