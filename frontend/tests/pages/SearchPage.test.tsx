@@ -209,6 +209,46 @@ describe('SearchPage', () => {
     })
   })
 
+  it('reveals additional passages from an already-shown document after loading more', async () => {
+    const makePassage = (chunk_index: number) => ({
+      document_id: '1',
+      filename: 'report.pdf',
+      chunk_index,
+      total_chunks: 10,
+      content: `passage ${chunk_index}`,
+      score: 0.9,
+    })
+
+    ;(search as any)
+      .mockResolvedValueOnce({
+        results: [makePassage(0), makePassage(1), makePassage(2), makePassage(3), makePassage(4)],
+        has_more: true,
+      })
+      .mockResolvedValueOnce({
+        results: [makePassage(5), makePassage(6), makePassage(7), makePassage(8), makePassage(9)],
+        has_more: false,
+      })
+
+    renderSearchPage()
+    fireEvent.change(screen.getByLabelText('Search your documents'), {
+      target: { value: 'passage' },
+    })
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(byText('p', 'passage 2'))).toBeInTheDocument()
+    })
+    expect(screen.queryByText(byText('p', 'passage 5'))).not.toBeInTheDocument()
+    expect(screen.getByText('+2 more passages in this document')).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Load more' }))
+
+    await waitFor(() => {
+      expect(screen.getByText(byText('p', 'passage 5'))).toBeInTheDocument()
+    })
+    expect(screen.getByText('+4 more passages in this document')).toBeInTheDocument()
+  })
+
   it('loads more results and appends them', async () => {
     ;(search as any)
       .mockResolvedValueOnce({
