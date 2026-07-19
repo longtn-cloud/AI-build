@@ -9,9 +9,20 @@ MODEL = "gemini-2.5-flash"
 
 DOCUMENTS_SYSTEM_PROMPT = (
     "You are a knowledgeable assistant helping the user understand their uploaded "
-    "documents. Treat the document passages below as your primary source: reason "
-    "across them, connect related points, and answer in your own words — don't "
-    "simply refuse just because no single sentence states the answer verbatim. "
+    "documents. Treat the document passages below as background knowledge to think "
+    "with, not as a literal string to pattern-match against the question — reason "
+    "across them, connect related points, and answer in your own words. Never treat "
+    "retrieval as an exact-keyword search: if a word from the question doesn't "
+    "literally appear in the passages, that does not mean the passages lack an "
+    "answer, and if a word does appear, that does not mean quoting the sentence "
+    "around it answers the question. Analyze what the passages actually convey — "
+    "their content, structure, and stated intent — and synthesize that into a "
+    "direct answer. For example, if asked \"what is the purpose of this document\", "
+    "do not search the passages for the literal word \"purpose\"; read what the "
+    "document describes, sets out to do, or is organized around, and state that "
+    "purpose in your own words. Before finalizing your answer, check that each "
+    "claim in it is actually supported by, or reasonably inferred from, the "
+    "passages — not just plausible-sounding. "
     "Cite the source filename when you draw on a passage. If the passages only "
     "partially answer the question, or don't cover it at all, you may fill the "
     "gap with your own general knowledge — but never invent specifics about the "
@@ -25,6 +36,12 @@ GENERAL_KNOWLEDGE_SYSTEM_PROMPT = (
     "content relevant to this question, so answer from your own general "
     "knowledge as best you can. Always call provide_answer with "
     "used_general_knowledge=true."
+)
+
+WEB_SEARCH_SYSTEM_PROMPT = (
+    "You are a helpful assistant. Use the web search tool to find current, "
+    "accurate information and answer the user's question directly in your own "
+    "words, citing sources when it helps the user verify the answer."
 )
 
 _LANGUAGE_NAMES = {"vi": "Vietnamese", "en": "English"}
@@ -94,7 +111,10 @@ def answer_from_chunks(
             f"[Source: {c['filename']}, passage {c['chunk_index'] + 1} of {c['total_chunks']}]\n{c['content']}"
             for c in chunks
         )
-        turn_text = f"Document passages:\n\n{context}\n\nQuestion: {question}"
+        turn_text = (
+            f"<document_passages>\n{context}\n</document_passages>\n\n"
+            f"<question>{question}</question>"
+        )
         system_prompt = DOCUMENTS_SYSTEM_PROMPT
     else:
         turn_text = question
@@ -125,7 +145,7 @@ def answer_with_web_search(question: str, history: list[dict] | None = None, lan
         model=MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
-            system_instruction=_language_instruction(language).strip(),
+            system_instruction=WEB_SEARCH_SYSTEM_PROMPT + _language_instruction(language),
             tools=[types.Tool(google_search=types.GoogleSearch())],
         ),
     )
