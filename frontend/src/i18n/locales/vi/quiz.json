@@ -1,0 +1,39 @@
+{
+  "loadingQuiz": "Đang tải bài đố vui…",
+  "errors": {
+    "loadQuiz": "Tải bài đố vui thất bại, vui lòng thử lại",
+    "generateQuiz": "Tạo bài đố vui thất bại, vui lòng thử lại",
+    "loadHistory": "Tải lịch sử đố vui thất bại, vui lòng thử lại"
+  },
+  "stats": {
+    "taken": "Số bài đã làm",
+    "avgScore": "Điểm trung bình"
+  },
+  "generateTitle": "Tạo bài đố vui mới",
+  "generateBody": "Chọn một hoặc nhiều tài liệu và chúng tôi sẽ tạo câu hỏi trắc nghiệm dựa hoàn toàn vào nội dung đó.",
+  "createQuiz": "Tạo bài đố vui",
+  "recentAttempts": "Các lượt làm gần đây",
+  "noAttempts": "Chưa có lượt làm bài đố vui nào",
+  "scoreOf": "{{score}} / {{total}}",
+  "backToQuizzes": "← Quay lại danh sách đố vui",
+  "generateHeading": "Tạo bài đố vui",
+  "step1": "1 · Chọn tài liệu nguồn",
+  "step2": "2 · Số lượng câu hỏi",
+  "generateButton": "Tạo {{count}} câu hỏi",
+  "exit": "✕ Thoát",
+  "questionOf": "Câu {{index}} trên {{total}}",
+  "fewerGenerated": "Đã tạo {{actual}} trên {{requested}} câu hỏi yêu cầu — các tài liệu đã chọn không có đủ nội dung riêng biệt để tạo thêm.",
+  "previous": "Trước",
+  "nextQuestion": "Câu tiếp theo",
+  "finishQuiz": "Hoàn thành",
+  "result": {
+    "great": "Xuất sắc!",
+    "nice": "Khá tốt",
+    "keep": "Cố gắng thêm nhé"
+  },
+  "resultBody": "Bạn đã trả lời đúng <strong>{{score}}</strong> trên {{total}} câu hỏi.",
+  "retakeQuiz": "Làm lại bài",
+  "backToQuizzesButton": "Quay lại danh sách đố vui",
+  "takeQuiz": "Làm bài đố vui",
+  "retake": "Làm lại"
+}

@@ -1,0 +1,36 @@
+{
+  "status": {
+    "uploading": "Uploading…",
+    "processing": "Processing…",
+    "ready": "Indexed",
+    "failed": "Failed"
+  },
+  "filters": {
+    "all": "All",
+    "pdf": "PDF",
+    "docx": "Docs",
+    "other": "Text"
+  },
+  "errors": {
+    "upload": "Failed to upload document",
+    "rename": "Failed to rename document",
+    "delete": "Failed to delete document",
+    "download": "Failed to download document",
+    "load": "Failed to load documents"
+  },
+  "uploadLabel": "Upload document",
+  "dragHint": "Drag a file here, or click to browse",
+  "emptyTitle": "Build your knowledge base",
+  "emptyBody": "Upload PDFs, Word docs, text or Markdown files. We'll index every passage so you can search, ask, and quiz — all grounded in your own material.",
+  "documentCount": "{{count}} documents",
+  "uploadedOn": "Uploaded {{date}}",
+  "preview": "Preview",
+  "download": "Download",
+  "rename": "Rename",
+  "delete": "Delete",
+  "renamePromptLabel": "New filename",
+  "deleteConfirm": "Delete {{filename}}?",
+  "previewFailed": "Failed to load preview.",
+  "close": "Close",
+  "previewTitle": "Document preview"
+}

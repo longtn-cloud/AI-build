@@ -1,0 +1,39 @@
+{
+  "loadingQuiz": "Loading quiz…",
+  "errors": {
+    "loadQuiz": "Failed to load quiz, try again",
+    "generateQuiz": "Failed to generate quiz, try again",
+    "loadHistory": "Failed to load quiz history, try again"
+  },
+  "stats": {
+    "taken": "Quizzes taken",
+    "avgScore": "Average score"
+  },
+  "generateTitle": "Generate a new quiz",
+  "generateBody": "Pick one or more documents and we'll build multiple-choice questions grounded strictly in their content.",
+  "createQuiz": "Create quiz",
+  "recentAttempts": "Recent attempts",
+  "noAttempts": "No quiz attempts yet",
+  "scoreOf": "{{score}} / {{total}}",
+  "backToQuizzes": "← Back to quizzes",
+  "generateHeading": "Generate a quiz",
+  "step1": "1 · Choose source documents",
+  "step2": "2 · Number of questions",
+  "generateButton": "Generate {{count}} questions",
+  "exit": "✕ Exit",
+  "questionOf": "Question {{index}} of {{total}}",
+  "fewerGenerated": "Generated {{actual}} of the requested {{requested}} questions — the selected documents didn't have enough distinct content for more.",
+  "previous": "Previous",
+  "nextQuestion": "Next question",
+  "finishQuiz": "Finish quiz",
+  "result": {
+    "great": "Great work!",
+    "nice": "Nice effort",
+    "keep": "Keep practicing"
+  },
+  "resultBody": "You answered <strong>{{score}}</strong> of {{total}} questions correctly.",
+  "retakeQuiz": "Retake quiz",
+  "backToQuizzesButton": "Back to quizzes",
+  "takeQuiz": "Take a quiz",
+  "retake": "Retake"
+}
