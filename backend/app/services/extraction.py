@@ -11,7 +11,12 @@ def extract_text(file_bytes: bytes, file_type: str) -> str:
 
     if file_type == "docx":
         document = docx.Document(io.BytesIO(file_bytes))
-        return "\n\n".join(paragraph.text for paragraph in document.paragraphs)
+        parts = [paragraph.text for paragraph in document.paragraphs]
+        for table in document.tables:
+            for row in table.rows:
+                for cell in row.cells:
+                    parts.append(cell.text)
+        return "\n\n".join(parts)
 
     if file_type in ("txt", "md"):
         return file_bytes.decode("utf-8", errors="replace")

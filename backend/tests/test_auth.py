@@ -52,6 +52,15 @@ def test_invalid_token_logs_both_verification_failure_reasons(caplog):
     assert "JWKS" in caplog.text
 
 
+def test_token_missing_sub_claim_returns_401_not_500():
+    payload = {"aud": "authenticated", "exp": int(time.time()) + 3600}
+    token = jwt.encode(payload, settings.supabase_jwt_secret, algorithm="HS256")
+
+    response = client.get("/whoami", headers={"Authorization": f"Bearer {token}"})
+
+    assert response.status_code == 401
+
+
 def test_es256_token_verified_via_jwks_returns_user_id(monkeypatch):
     # Supabase projects created with the newer JWT Signing Keys feature sign
     # access tokens with an asymmetric key (ES256), not the legacy shared

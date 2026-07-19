@@ -9,7 +9,7 @@ from app.main import app
 from tests.conftest import TEST_DB_URL
 from tests.helpers import make_token
 
-client = TestClient(app)
+client = TestClient(app, raise_server_exceptions=False)
 
 
 def _create_user_with_document() -> tuple[dict, str]:
@@ -81,3 +81,22 @@ def test_delete_other_users_document_returns_404(monkeypatch):
     response = client.delete(f"/documents/{document_id}", headers=other_user_headers)
 
     assert response.status_code == 404
+
+
+def test_delete_does_not_remove_document_row_when_storage_delete_fails(monkeypatch):
+    from app.routers import documents as documents_router
+
+    monkeypatch.setattr(
+        documents_router, "delete_file", MagicMock(side_effect=RuntimeError("storage down"))
+    )
+
+    headers, document_id = _create_user_with_document()
+
+    response = client.delete(f"/documents/{document_id}", headers=headers)
+
+    assert response.status_code == 500
+    with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
+        row = conn.execute(
+            "SELECT id FROM documents WHERE id = %s", (document_id,)
+        ).fetchone()
+    assert row is not None

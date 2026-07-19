@@ -14,7 +14,7 @@ router = APIRouter(prefix="/documents", tags=["documents"])
 
 
 @router.post("", response_model=DocumentOut, status_code=201)
-async def upload_document(
+def upload_document(
     background_tasks: BackgroundTasks,
     file: UploadFile = File(...),
     user_id: str = Depends(get_current_user_id),
@@ -23,7 +23,7 @@ async def upload_document(
     if file_type not in settings.allowed_file_types:
         raise HTTPException(status_code=400, detail=f"Unsupported file type: {file_type}")
 
-    file_bytes = await file.read()
+    file_bytes = file.file.read()
     if len(file_bytes) > settings.max_upload_bytes:
         raise HTTPException(status_code=400, detail="File exceeds maximum size")
 
@@ -47,7 +47,7 @@ async def upload_document(
 
 
 @router.get("", response_model=list[DocumentListItemOut])
-async def list_documents(user_id: str = Depends(get_current_user_id)):
+def list_documents(user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         rows = conn.execute(
             """
@@ -67,7 +67,7 @@ class RenameRequest(BaseModel):
 
 
 @router.patch("/{document_id}", response_model=DocumentOut)
-async def rename_document(
+def rename_document(
     document_id: str,
     body: RenameRequest,
     user_id: str = Depends(get_current_user_id),
@@ -88,22 +88,25 @@ async def rename_document(
 
 
 @router.delete("/{document_id}", status_code=204)
-async def delete_document(document_id: str, user_id: str = Depends(get_current_user_id)):
+def delete_document(document_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         row = conn.execute(
             "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
             (document_id, user_id),
         ).fetchone()
-        if row is None:
-            raise HTTPException(status_code=404, detail="Document not found")
+    if row is None:
+        raise HTTPException(status_code=404, detail="Document not found")
+
+    delete_file(row["storage_path"])
+
+    with get_conn() as conn:
         conn.execute(
             "DELETE FROM documents WHERE id = %s AND user_id = %s", (document_id, user_id)
         )
-    delete_file(row["storage_path"])
 
 
 @router.get("/{document_id}/download")
-async def get_download_url(document_id: str, user_id: str = Depends(get_current_user_id)):
+def get_download_url(document_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         row = conn.execute(
             "SELECT storage_path FROM documents WHERE id = %s AND user_id = %s",
@@ -115,7 +118,7 @@ async def get_download_url(document_id: str, user_id: str = Depends(get_current_
 
 
 @router.get("/{document_id}/preview")
-async def get_preview(document_id: str, user_id: str = Depends(get_current_user_id)):
+def get_preview(document_id: str, user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         row = conn.execute(
             "SELECT file_type, status, extracted_text FROM documents WHERE id = %s AND user_id = %s",

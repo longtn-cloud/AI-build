@@ -24,6 +24,10 @@ def process_document(document_id: str) -> None:
             raise ValueError("No extractable text found in document")
 
         vectors = embed_texts(pieces)
+        if len(vectors) != len(pieces):
+            raise ValueError(
+                f"Embedding count mismatch: expected {len(pieces)} vectors, got {len(vectors)}"
+            )
 
         with get_conn() as conn:
             for index, (content, embedding) in enumerate(zip(pieces, vectors)):

@@ -3,6 +3,7 @@ from unittest.mock import MagicMock
 
 import psycopg
 from fastapi.testclient import TestClient
+from psycopg.rows import dict_row
 
 from app.config import settings
 from app.main import app
@@ -183,6 +184,34 @@ def test_send_message_returns_404_for_other_users_session(monkeypatch):
     )
 
     assert response.status_code == 404
+
+
+def test_send_message_persists_user_message_even_when_llm_call_fails(monkeypatch):
+    from app.routers import chat as chat_router
+
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    monkeypatch.setattr(
+        chat_router, "answer_from_chunks", MagicMock(side_effect=RuntimeError("gemini down"))
+    )
+
+    user_id, headers = _create_user()
+    _create_document_with_chunks(user_id, "policy.txt", [RELEVANT_VEC])
+    session_id = _create_session(headers)
+
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What is the refund window?"},
+        headers=headers,
+    )
+
+    assert response.status_code == 502
+    with psycopg.connect(TEST_DB_URL, autocommit=True, row_factory=dict_row) as conn:
+        row = conn.execute(
+            "SELECT content FROM chat_messages WHERE session_id = %s AND role = 'user'",
+            (session_id,),
+        ).fetchone()
+    assert row is not None
+    assert row["content"] == "What is the refund window?"
 
 
 def test_send_message_excludes_other_users_chunks(monkeypatch):

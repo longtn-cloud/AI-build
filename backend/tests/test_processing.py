@@ -100,3 +100,24 @@ def test_process_document_marks_failed_on_early_db_error(monkeypatch):
 
     assert doc[0] == "failed"
     assert doc[1] is not None
+
+
+def test_process_document_marks_failed_on_embedding_count_mismatch(monkeypatch):
+    _, document_id = _create_document()
+
+    monkeypatch.setattr(processing, "download_file", lambda path: b"a" * 2000)
+    monkeypatch.setattr(processing, "embed_texts", lambda pieces: [[0.1] * 384])
+
+    processing.process_document(document_id)
+
+    with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
+        doc = conn.execute(
+            "SELECT status, error_reason FROM documents WHERE id = %s", (document_id,)
+        ).fetchone()
+        chunk_count = conn.execute(
+            "SELECT count(*) FROM chunks WHERE document_id = %s", (document_id,)
+        ).fetchone()[0]
+
+    assert doc[0] == "failed"
+    assert "mismatch" in doc[1].lower()
+    assert chunk_count == 0

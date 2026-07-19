@@ -77,6 +77,28 @@ def test_upload_rejects_oversized_file(monkeypatch):
     assert response.status_code == 400
 
 
+def test_upload_with_no_filename_returns_422_not_a_crash(monkeypatch):
+    # Starlette's multipart parser only builds an UploadFile when the part has
+    # a `filename` attribute at all (even ""); if it's omitted entirely, the
+    # field is parsed as a plain string and FastAPI's own request validation
+    # rejects it with 422 before the field ever reaches this handler. This
+    # pins that existing safe behavior rather than a handler-level fix.
+    from app.routers import documents as documents_router
+
+    monkeypatch.setattr(documents_router, "upload_file", MagicMock())
+    monkeypatch.setattr(documents_router, "process_document", MagicMock())
+
+    _, headers = _create_user()
+
+    response = client.post(
+        "/documents",
+        headers=headers,
+        files={"file": (None, b"hello world", "text/plain")},
+    )
+
+    assert response.status_code == 422
+
+
 def test_upload_requires_auth():
     response = client.post(
         "/documents", files={"file": ("notes.txt", b"hello", "text/plain")}

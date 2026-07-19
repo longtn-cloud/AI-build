@@ -52,8 +52,19 @@ def _validate_question(raw: dict, valid_document_ids: set[str], total_chunks_by_
     }
 
 
+def _cap_chunks_per_document(rows: list, max_chunks: int) -> list:
+    if len(rows) <= max_chunks:
+        return rows
+    document_ids = list(dict.fromkeys(r["document_id"] for r in rows))
+    per_doc_cap = max(1, max_chunks // len(document_ids))
+    capped = []
+    for doc_id in document_ids:
+        capped.extend([r for r in rows if r["document_id"] == doc_id][:per_doc_cap])
+    return capped[:max_chunks]
+
+
 @router.post("/generate", status_code=201)
-async def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_user_id)):
+def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_user_id)):
     document_ids = list(dict.fromkeys(body.document_ids))
     if not document_ids:
         raise HTTPException(status_code=400, detail="document_ids must not be empty")
@@ -101,12 +112,17 @@ async def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_cu
                 "total_chunks": r["total_chunks"],
                 "content": r["content"],
             }
-            for r in chunk_rows[:MAX_CHUNKS]
+            for r in _cap_chunks_per_document(chunk_rows, MAX_CHUNKS)
         ]
         total_chunks_by_doc = {c["document_id"]: c["total_chunks"] for c in chunks}
         valid_document_ids = set(document_ids)
 
-        raw_questions = generate_quiz_questions(chunks, body.num_questions)
+        try:
+            raw_questions = generate_quiz_questions(chunks, body.num_questions)
+        except Exception as exc:
+            raise HTTPException(
+                status_code=502, detail="Failed to generate quiz questions, please try again"
+            ) from exc
         valid_questions = [
             q
             for raw in raw_questions
@@ -178,7 +194,7 @@ class SubmitAttemptRequest(BaseModel):
 
 
 @router.post("/{quiz_id}/attempts", status_code=201)
-async def submit_attempt(
+def submit_attempt(
     quiz_id: str,
     body: SubmitAttemptRequest,
     user_id: str = Depends(get_current_user_id),
@@ -260,7 +276,7 @@ async def submit_attempt(
 
 
 @router.get("/attempts")
-async def list_attempts(user_id: str = Depends(get_current_user_id)):
+def list_attempts(user_id: str = Depends(get_current_user_id)):
     with get_conn() as conn:
         attempt_rows = conn.execute(
             """
