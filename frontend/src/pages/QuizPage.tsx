@@ -5,6 +5,7 @@ import { Trans, useTranslation } from 'react-i18next'
 
 import { Alert } from '../components/ui/Alert'
 import { Button } from '../components/ui/Button'
+import i18n from '../i18n'
 import { generateQuiz, getQuiz, listDocuments, listQuizAttempts, submitQuizAttempt, QuizAnswer } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -75,7 +76,7 @@ export function QuizPage() {
 
   const generateMutation = useMutation({
     mutationFn: (vars: { documentIds: string[]; numQuestions: number }) =>
-      generateQuiz(vars.documentIds, vars.numQuestions),
+      generateQuiz(vars.documentIds, vars.numQuestions, i18n.language),
     onSuccess: (generated) => startQuiz(generated),
   })
 

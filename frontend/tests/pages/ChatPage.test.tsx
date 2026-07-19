@@ -11,6 +11,7 @@ vi.mock('../../src/lib/api', () => ({
 
 import { createChatSession, sendChatMessage } from '../../src/lib/api'
 import { ChatPage } from '../../src/pages/ChatPage'
+import i18n from '../../src/i18n'
 
 function renderChatPage() {
   return renderWithQueryClient(
@@ -78,7 +79,7 @@ describe('ChatPage', () => {
     expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
     expect(screen.getByText('policy.pdf — đoạn 2 trên 3')).toBeInTheDocument()
     expect(screen.queryByText('Web')).not.toBeInTheDocument()
-    expect(sendChatMessage).toHaveBeenCalledWith('session-1', 'What is the refund window?', false)
+    expect(sendChatMessage).toHaveBeenCalledWith('session-1', 'What is the refund window?', false, 'vi')
   })
 
   it('renders a Web badge and no sources for a web-search-assisted reply', async () => {
@@ -121,7 +122,7 @@ describe('ChatPage', () => {
       expect(screen.getByText("It's sunny in Paris today.")).toBeInTheDocument()
     })
     expect(screen.getByText('Web')).toBeInTheDocument()
-    expect(sendChatMessage).toHaveBeenCalledWith('session-1', "What's the weather in Paris?", true)
+    expect(sendChatMessage).toHaveBeenCalledWith('session-1', "What's the weather in Paris?", true, 'vi')
   })
 
   it('shows an error message when sending fails', async () => {
@@ -257,5 +258,45 @@ describe('ChatPage', () => {
     })
     expect(screen.getByText('Tài liệu + Kiến thức chung')).toBeInTheDocument()
     expect(screen.getByText('policy.pdf — đoạn 2 trên 3')).toBeInTheDocument()
+  })
+
+  it('sends the currently selected UI language with the message', async () => {
+    ;(createChatSession as any).mockResolvedValue({
+      id: 'session-1',
+      title: 'New Chat',
+      created_at: '2026-07-18T00:00:00Z',
+    })
+    ;(sendChatMessage as any).mockResolvedValue({
+      user_message: {
+        id: 'msg-1',
+        role: 'user',
+        content: 'hello',
+        citations: [],
+        used_web_search: false,
+        used_general_knowledge: false,
+        created_at: '2026-07-18T00:00:01Z',
+      },
+      assistant_message: {
+        id: 'msg-2',
+        role: 'assistant',
+        content: 'hi',
+        citations: [],
+        used_web_search: false,
+        used_general_knowledge: true,
+        created_at: '2026-07-18T00:00:02Z',
+      },
+    })
+
+    i18n.changeLanguage('en')
+    renderChatPage()
+    await waitFor(() => expect(createChatSession).toHaveBeenCalled())
+
+    fireEvent.change(screen.getByLabelText('Ask a question'), { target: { value: 'hello' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send' }))
+
+    await waitFor(() => {
+      expect(sendChatMessage).toHaveBeenCalledWith('session-1', 'hello', false, 'en')
+    })
+    i18n.changeLanguage('vi')
   })
 })

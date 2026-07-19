@@ -6,6 +6,7 @@ import { Alert } from '../components/ui/Alert'
 import { Badge } from '../components/ui/Badge'
 import { Button } from '../components/ui/Button'
 import { Input } from '../components/ui/Input'
+import i18n from '../i18n'
 import { ChatMessage, createChatSession, sendChatMessage } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
@@ -23,7 +24,7 @@ export function ChatPage() {
 
   const sendMutation = useMutation({
     mutationFn: (vars: { sessionId: string; content: string; webSearch: boolean }) =>
-      sendChatMessage(vars.sessionId, vars.content, vars.webSearch),
+      sendChatMessage(vars.sessionId, vars.content, vars.webSearch, i18n.language),
     onSuccess: ({ user_message, assistant_message }) => {
       setMessages((prev) => [...prev, user_message, assistant_message])
       setInput('')

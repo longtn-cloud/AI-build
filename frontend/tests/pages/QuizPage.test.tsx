@@ -150,7 +150,7 @@ describe('QuizPage', () => {
     await waitFor(() => {
       expect(screen.getByText('What is the refund window?')).toBeInTheDocument()
     })
-    expect(generateQuiz).toHaveBeenCalledWith(['doc-1'], 8)
+    expect(generateQuiz).toHaveBeenCalledWith(['doc-1'], 8, 'vi')
     expect(screen.queryByText('What is covered?')).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByText('30 days'))
