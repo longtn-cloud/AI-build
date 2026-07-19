@@ -201,6 +201,7 @@ describe('api client', () => {
       content: 'What is the refund window?',
       citations: [],
       used_web_search: false,
+      used_general_knowledge: false,
       created_at: '2026-07-18T00:00:01Z',
     }
     const assistantMessage = {
@@ -211,6 +212,7 @@ describe('api client', () => {
         { document_id: 'doc-1', filename: 'policy.pdf', chunk_index: 1, total_chunks: 3, score: 0.81 },
       ],
       used_web_search: false,
+      used_general_knowledge: false,
       created_at: '2026-07-18T00:00:02Z',
     }
     ;(globalThis.fetch as any).mockResolvedValue({
