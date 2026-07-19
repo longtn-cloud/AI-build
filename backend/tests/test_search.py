@@ -240,3 +240,21 @@ def test_search_surfaces_exact_keyword_match_despite_poor_vector_similarity(monk
     results = response.json()["results"]
     assert results[0]["document_id"] == target_document_id
     assert results[0]["filename"] == "report.txt"
+
+
+def test_search_includes_documents_shared_with_caller_team(monkeypatch):
+    from app.routers import search as search_router
+
+    monkeypatch.setattr(search_router, "embed_query", lambda q: TARGET_VEC)
+
+    owner_id, owner_headers = _create_user()
+    member_id, member_headers = _create_user()
+    team_id = client.post("/teams", json={"name": "Team"}, headers=owner_headers).json()["id"]
+    client.post(f"/teams/{team_id}/members", json={"user_id": member_id}, headers=owner_headers)
+    document_id = _create_document_with_chunks(owner_id, "shared.txt", [TARGET_VEC])
+    client.post(f"/documents/{document_id}/share", json={"team_id": team_id}, headers=owner_headers)
+
+    response = client.get("/search", params={"q": "revenue"}, headers=member_headers)
+
+    filenames = [r["filename"] for r in response.json()["results"]]
+    assert filenames == ["shared.txt"]
