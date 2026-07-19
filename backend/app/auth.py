@@ -16,6 +16,13 @@ logger = logging.getLogger(__name__)
 # on every request.
 _jwks_client = jwt.PyJWKClient(f"{settings.supabase_url}/auth/v1/.well-known/jwks.json")
 
+# PyJWT validates "iat"/"exp" against this server's clock with zero leeway by
+# default. A few seconds of drift between this host's clock and Supabase's
+# (common on VMs/containers) makes PyJWT reject an already-valid token with
+# ImmatureSignatureError. Tolerate small skew instead of trusting perfect
+# clock sync.
+_CLOCK_SKEW_LEEWAY_SECONDS = 10
+
 
 def get_current_user_id(authorization: str = Header(default="")) -> str:
     if not authorization.startswith("Bearer "):
@@ -29,6 +36,7 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             settings.supabase_jwt_secret,
             algorithms=["HS256"],
             audience="authenticated",
+            leeway=_CLOCK_SKEW_LEEWAY_SECONDS,
         )
         sub = payload.get("sub")
         if sub is not None:
@@ -47,6 +55,7 @@ def get_current_user_id(authorization: str = Header(default="")) -> str:
             signing_key.key,
             algorithms=["ES256", "RS256"],
             audience="authenticated",
+            leeway=_CLOCK_SKEW_LEEWAY_SECONDS,
         )
         sub = payload.get("sub")
         if sub is not None:
