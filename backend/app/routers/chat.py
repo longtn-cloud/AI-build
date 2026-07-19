@@ -8,7 +8,7 @@ from psycopg.types.json import Json
 from app.auth import get_current_user_id
 from app.db import get_conn
 from app.services.embeddings import embed_query
-from app.services.llm import answer_from_chunks, answer_with_web_search
+from app.services.llm import answer_from_chunks, answer_with_web_search, llm_error_response
 
 router = APIRouter(prefix="/chat", tags=["chat"])
 
@@ -139,9 +139,10 @@ def send_message(
             citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]
             used_web_search = False
     except Exception as exc:
-        raise HTTPException(
-            status_code=502, detail="Failed to generate a response, please try again"
-        ) from exc
+        status_code, detail = llm_error_response(
+            exc, "Failed to generate a response, please try again"
+        )
+        raise HTTPException(status_code=status_code, detail=detail) from exc
 
     with get_conn() as conn:
         assistant_message_id = str(uuid.uuid4())
