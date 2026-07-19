@@ -6,7 +6,7 @@ import { useAuth } from '../contexts/AuthContext'
 import { listDocuments } from '../lib/api'
 import { queryKeys } from '../lib/queryKeys'
 
-const LINK_PATHS = ['/documents', '/search', '/chat', '/quiz', '/quiz/history'] as const
+const LINK_PATHS = ['/documents', '/search', '/chat', '/quiz', '/quiz/history', '/teams'] as const
 
 const LINK_INFO: Record<(typeof LINK_PATHS)[number], { labelKey: string; badge: boolean }> = {
   '/documents': { labelKey: 'nav.documents', badge: true },
@@ -14,6 +14,7 @@ const LINK_INFO: Record<(typeof LINK_PATHS)[number], { labelKey: string; badge: 
   '/chat': { labelKey: 'nav.chat', badge: false },
   '/quiz': { labelKey: 'nav.quiz', badge: false },
   '/quiz/history': { labelKey: 'nav.quizHistory', badge: false },
+  '/teams': { labelKey: 'nav.teams', badge: false },
 }
 
 export function AppNav() {

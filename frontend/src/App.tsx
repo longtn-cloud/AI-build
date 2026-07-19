@@ -10,6 +10,7 @@ import { QuizHistoryPage } from './pages/QuizHistoryPage'
 import { QuizPage } from './pages/QuizPage'
 import { SearchPage } from './pages/SearchPage'
 import { SignupPage } from './pages/SignupPage'
+import { TeamsPage } from './pages/TeamsPage'
 
 export function App() {
   return (
@@ -73,6 +74,16 @@ export function App() {
             <ProtectedRoute>
               <AppShell>
                 <ChatPage />
+              </AppShell>
+            </ProtectedRoute>
+          }
+        />
+        <Route
+          path="/teams"
+          element={
+            <ProtectedRoute>
+              <AppShell>
+                <TeamsPage />
               </AppShell>
             </ProtectedRoute>
           }
