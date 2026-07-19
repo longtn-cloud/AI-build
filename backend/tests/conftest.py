@@ -32,6 +32,9 @@ def apply_migrations():
     chat_sql = (BACKEND_ROOT / "migrations" / "0002_chat.sql").read_text()
     quiz_sql = (BACKEND_ROOT / "migrations" / "0003_quiz.sql").read_text()
     search_fts_sql = (BACKEND_ROOT / "migrations" / "0004_search_fts.sql").read_text()
+    chat_general_knowledge_sql = (
+        BACKEND_ROOT / "migrations" / "0005_chat_general_knowledge.sql"
+    ).read_text()
     with psycopg.connect(TEST_DB_URL, autocommit=True) as conn:
         conn.execute(
             "DROP TABLE IF EXISTS quiz_attempts, quiz_questions, quizzes, "
@@ -42,6 +45,7 @@ def apply_migrations():
         conn.execute(chat_sql)
         conn.execute(quiz_sql)
         conn.execute(search_fts_sql)
+        conn.execute(chat_general_knowledge_sql)
     yield
 
 

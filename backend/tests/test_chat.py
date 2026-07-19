@@ -238,3 +238,23 @@ def test_send_message_excludes_other_users_chunks(monkeypatch):
         "I couldn't find relevant information in your uploaded documents to answer that question."
     )
     answer_mock.assert_not_called()
+
+
+def test_chat_messages_used_general_knowledge_defaults_to_false():
+    _, headers = _create_user()
+    session_id = _create_session(headers)
+
+    with psycopg.connect(TEST_DB_URL, autocommit=True, row_factory=dict_row) as conn:
+        conn.execute(
+            """
+            INSERT INTO chat_messages (id, session_id, role, content, citations, used_web_search)
+            VALUES (%s, %s, 'user', 'hello', '[]'::jsonb, false)
+            """,
+            (str(uuid.uuid4()), session_id),
+        )
+        row = conn.execute(
+            "SELECT used_general_knowledge FROM chat_messages WHERE session_id = %s",
+            (session_id,),
+        ).fetchone()
+
+    assert row["used_general_knowledge"] is False
