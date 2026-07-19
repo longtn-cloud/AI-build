@@ -1,6 +1,7 @@
 from unittest.mock import MagicMock
 
 import pytest
+from google.genai import errors as genai_errors
 
 from app.services import llm
 
@@ -246,3 +247,28 @@ def test_generate_quiz_questions_defaults_to_vietnamese_instruction(monkeypatch)
 
     _, kwargs = fake_client.models.generate_content.call_args
     assert "Vietnamese" in kwargs["config"].system_instruction
+
+
+def test_llm_error_response_maps_quota_error_to_429():
+    exc = genai_errors.APIError(429, {"error": {"status": "RESOURCE_EXHAUSTED"}})
+
+    status_code, detail = llm.llm_error_response(exc, "fallback message")
+
+    assert status_code == 429
+    assert "quota" in detail.lower() or "rate-limited" in detail.lower()
+
+
+def test_llm_error_response_maps_other_api_error_to_502_with_fallback():
+    exc = genai_errors.APIError(500, {"error": {"status": "INTERNAL"}})
+
+    status_code, detail = llm.llm_error_response(exc, "fallback message")
+
+    assert status_code == 502
+    assert detail == "fallback message"
+
+
+def test_llm_error_response_maps_generic_exception_to_502_with_fallback():
+    status_code, detail = llm.llm_error_response(RuntimeError("boom"), "fallback message")
+
+    assert status_code == 502
+    assert detail == "fallback message"

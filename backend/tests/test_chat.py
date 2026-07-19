@@ -243,6 +243,30 @@ def test_send_message_persists_user_message_even_when_llm_call_fails(monkeypatch
     assert row["content"] == "What is the refund window?"
 
 
+def test_send_message_surfaces_gemini_quota_error_as_429(monkeypatch):
+    from google.genai import errors as genai_errors
+
+    from app.routers import chat as chat_router
+
+    quota_error = genai_errors.APIError(429, {"error": {"status": "RESOURCE_EXHAUSTED"}})
+    monkeypatch.setattr(chat_router, "embed_query", lambda q: RELEVANT_VEC)
+    monkeypatch.setattr(
+        chat_router, "answer_from_chunks", MagicMock(side_effect=quota_error)
+    )
+
+    user_id, headers = _create_user()
+    _create_document_with_chunks(user_id, "policy.txt", [RELEVANT_VEC])
+    session_id = _create_session(headers)
+
+    response = client.post(
+        f"/chat/sessions/{session_id}/messages",
+        json={"content": "What is the refund window?"},
+        headers=headers,
+    )
+
+    assert response.status_code == 429
+
+
 def test_send_message_excludes_other_users_chunks(monkeypatch):
     from app.routers import chat as chat_router
 
