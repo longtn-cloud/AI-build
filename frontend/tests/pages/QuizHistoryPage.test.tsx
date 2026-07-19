@@ -6,9 +6,13 @@ import { renderWithQueryClient } from '../test-utils'
 
 vi.mock('../../src/lib/api', () => ({
   listQuizAttempts: vi.fn(),
+  shareQuiz: vi.fn(),
+  unshareQuiz: vi.fn(),
+  listSharedQuizzes: vi.fn(),
+  listTeams: vi.fn(),
 }))
 
-import { listQuizAttempts } from '../../src/lib/api'
+import { listQuizAttempts, listSharedQuizzes, listTeams, shareQuiz } from '../../src/lib/api'
 import { QuizHistoryPage } from '../../src/pages/QuizHistoryPage'
 
 function RetakeRouteProbe() {
@@ -37,6 +41,7 @@ describe('QuizHistoryPage', () => {
         total_questions: 10,
         completed_at: '2026-07-18T12:05:00Z',
         document_filenames: ['policy.pdf'],
+        shared_team_ids: [],
       },
     ])
 
@@ -76,6 +81,7 @@ describe('QuizHistoryPage', () => {
         total_questions: 10,
         completed_at: '2026-07-18T12:05:00Z',
         document_filenames: ['policy.pdf'],
+        shared_team_ids: [],
       },
     ])
 
@@ -85,6 +91,45 @@ describe('QuizHistoryPage', () => {
 
     await waitFor(() => {
       expect(screen.getByText('retake page for /quiz/quiz-1/retake')).toBeInTheDocument()
+    })
+  })
+
+  it('opens the share modal for an attempt', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([
+      {
+        id: 'attempt-1',
+        quiz_id: 'quiz-1',
+        score: 7,
+        total_questions: 10,
+        completed_at: '2026-07-18T12:05:00Z',
+        document_filenames: ['policy.pdf'],
+        shared_team_ids: [],
+      },
+    ])
+    ;(listTeams as any).mockResolvedValue([])
+
+    renderQuizHistoryPage()
+    await waitFor(() => screen.getByRole('button', { name: 'Chia sẻ' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Chia sẻ' }))
+
+    await waitFor(() => {
+      expect(screen.getByText('Chia sẻ với nhóm')).toBeInTheDocument()
+    })
+  })
+
+  it('shows the Shared with me tab with shared quizzes', async () => {
+    ;(listQuizAttempts as any).mockResolvedValue([])
+    ;(listSharedQuizzes as any).mockResolvedValue([
+      { id: 'quiz-9', document_ids: ['doc-1'], created_at: '2026-07-18T12:05:00Z' },
+    ])
+
+    renderQuizHistoryPage()
+    await waitFor(() => screen.getByText('Chưa có lượt làm bài đố vui nào'))
+
+    fireEvent.click(screen.getByText('Được chia sẻ'))
+
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Làm bài' })).toBeInTheDocument()
     })
   })
 })
