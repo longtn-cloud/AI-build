@@ -59,5 +59,5 @@ def clean_tables():
         conn.execute(
             "TRUNCATE quiz_shares, document_shares, team_members, teams, "
             "quiz_attempts, quiz_questions, quizzes, "
-            "chat_messages, chat_sessions, chunks, documents CASCADE"
+            "chat_messages, chat_sessions, chunks, documents, profiles, auth.users CASCADE"
         )
