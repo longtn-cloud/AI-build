@@ -30,6 +30,10 @@ export function PreviewModal({
       }
       const url = await getDownloadUrl(document.id)
       const response = await fetch(url)
+      if (!response.ok) {
+        if (!cancelled) setContent({ kind: 'text', value: 'Failed to load preview.' })
+        return
+      }
       const text = await response.text()
       if (!cancelled) setContent({ kind: 'text', value: text })
     }

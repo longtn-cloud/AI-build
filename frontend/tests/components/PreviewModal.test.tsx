@@ -21,7 +21,7 @@ const baseDoc = {
 }
 
 beforeEach(() => {
-  globalThis.fetch = vi.fn().mockResolvedValue({ text: async () => 'plain file contents' })
+  globalThis.fetch = vi.fn().mockResolvedValue({ ok: true, text: async () => 'plain file contents' })
 })
 
 describe('PreviewModal', () => {
@@ -56,5 +56,21 @@ describe('PreviewModal', () => {
     await waitFor(() => {
       expect(screen.getByText('plain file contents')).toBeInTheDocument()
     })
+  })
+
+  it('shows a failure message instead of rendering an error body as preview text', async () => {
+    ;(getDownloadUrl as any).mockResolvedValue('https://signed.example/expired.txt')
+    globalThis.fetch = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      text: async () => '<xml>AccessDenied</xml>',
+    })
+
+    render(<PreviewModal document={{ ...baseDoc, file_type: 'txt' }} onClose={() => {}} />)
+
+    await waitFor(() => {
+      expect(screen.getByText('Failed to load preview.')).toBeInTheDocument()
+    })
+    expect(screen.queryByText('AccessDenied', { exact: false })).not.toBeInTheDocument()
   })
 })
