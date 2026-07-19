@@ -10,7 +10,7 @@ Full design rationale lives in `docs/superpowers/specs/` and `docs/superpowers/p
 - **Backend:** FastAPI + psycopg3, pytest
 - **Database / Auth / Storage:** Supabase (Postgres + `pgvector`, Auth, object storage)
 - **Embeddings:** Gemini API (`gemini-embedding-001`, 384-dim vectors)
-- **LLM:** Gemini API (`gemini-2.5-flash`) — chat Q&A and quiz generation
+- **LLM:** Gemini API (`gemini-flash-latest`) — chat Q&A and quiz generation
 
 Data flow: Browser → FastAPI → Supabase (Postgres/pgvector + Storage), and → Gemini API.
 
