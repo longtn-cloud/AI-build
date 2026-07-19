@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -18,6 +19,7 @@ MAX_QUESTIONS = 20
 class GenerateQuizRequest(BaseModel):
     document_ids: list[str]
     num_questions: int = 10
+    language: Literal["vi", "en"] = "vi"
 
 
 def _validate_question(raw: dict, valid_document_ids: set[str], total_chunks_by_doc: dict[str, int]) -> dict | None:
@@ -118,7 +120,7 @@ def generate_quiz(body: GenerateQuizRequest, user_id: str = Depends(get_current_
         valid_document_ids = set(document_ids)
 
         try:
-            raw_questions = generate_quiz_questions(chunks, body.num_questions)
+            raw_questions = generate_quiz_questions(chunks, body.num_questions, body.language)
         except Exception as exc:
             raise HTTPException(
                 status_code=502, detail="Failed to generate quiz questions, please try again"

@@ -259,3 +259,23 @@ def test_generate_quiz_returns_502_when_llm_call_raises(monkeypatch):
     )
 
     assert response.status_code == 502
+
+
+def test_generate_quiz_passes_requested_language_to_llm(monkeypatch):
+    from app.routers import quiz as quiz_router
+
+    user_id, headers = _create_user()
+    document_id = _create_document_with_chunks(user_id, "policy.txt", 3)
+
+    questions = [_valid_question(document_id, i % 3) for i in range(5)]
+    generate_mock = MagicMock(return_value=questions)
+    monkeypatch.setattr(quiz_router, "generate_quiz_questions", generate_mock)
+
+    response = client.post(
+        "/quiz/generate",
+        json={"document_ids": [document_id], "num_questions": 5, "language": "en"},
+        headers=headers,
+    )
+
+    assert response.status_code == 201
+    generate_mock.assert_called_once_with(generate_mock.call_args[0][0], 5, "en")

@@ -1,4 +1,5 @@
 import uuid
+from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
@@ -37,6 +38,7 @@ def create_session(user_id: str = Depends(get_current_user_id)):
 class SendMessageRequest(BaseModel):
     content: str
     web_search: bool = False
+    language: Literal["vi", "en"] = "vi"
 
 
 def _serialize_message(row) -> dict:
@@ -92,7 +94,7 @@ def send_message(
 
     try:
         if body.web_search:
-            answer_text = answer_with_web_search(body.content, history)
+            answer_text = answer_with_web_search(body.content, history, body.language)
             citations: list[dict] = []
             used_web_search = True
             used_general_knowledge = False
@@ -131,7 +133,7 @@ def send_message(
                 }
                 for r in chunk_rows
             ]
-            result = answer_from_chunks(body.content, chunks, history)
+            result = answer_from_chunks(body.content, chunks, history, body.language)
             answer_text = result["answer"]
             used_general_knowledge = result["used_general_knowledge"] or not chunks
             citations = [{k: v for k, v in c.items() if k != "content"} for c in chunks]

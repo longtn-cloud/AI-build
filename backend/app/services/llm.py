@@ -27,6 +27,13 @@ GENERAL_KNOWLEDGE_SYSTEM_PROMPT = (
     "used_general_knowledge=true."
 )
 
+_LANGUAGE_NAMES = {"vi": "Vietnamese", "en": "English"}
+
+
+def _language_instruction(language: str) -> str:
+    return f" Respond in {_LANGUAGE_NAMES[language]}."
+
+
 ANSWER_TOOL = types.FunctionDeclaration(
     name="provide_answer",
     description="Return the final answer to the user's question.",
@@ -79,7 +86,9 @@ def _extract_answer(response) -> dict:
     raise RuntimeError("Gemini did not call provide_answer")
 
 
-def answer_from_chunks(question: str, chunks: list[dict], history: list[dict] | None = None) -> dict:
+def answer_from_chunks(
+    question: str, chunks: list[dict], history: list[dict] | None = None, language: str = "vi"
+) -> dict:
     if chunks:
         context = "\n\n".join(
             f"[Source: {c['filename']}, passage {c['chunk_index'] + 1} of {c['total_chunks']}]\n{c['content']}"
@@ -99,7 +108,7 @@ def answer_from_chunks(question: str, chunks: list[dict], history: list[dict] | 
         model=MODEL,
         contents=contents,
         config=types.GenerateContentConfig(
-            system_instruction=system_prompt,
+            system_instruction=system_prompt + _language_instruction(language),
             thinking_config=types.ThinkingConfig(thinking_budget=-1),
             tools=[types.Tool(function_declarations=[ANSWER_TOOL])],
             tool_config=_ANSWER_TOOL_CONFIG,
@@ -108,14 +117,17 @@ def answer_from_chunks(question: str, chunks: list[dict], history: list[dict] | 
     return _extract_answer(response)
 
 
-def answer_with_web_search(question: str, history: list[dict] | None = None) -> str:
+def answer_with_web_search(question: str, history: list[dict] | None = None, language: str = "vi") -> str:
     contents = _history_contents(history) + [
         types.Content(role="user", parts=[types.Part.from_text(text=question)])
     ]
     response = _client.models.generate_content(
         model=MODEL,
         contents=contents,
-        config=types.GenerateContentConfig(tools=[types.Tool(google_search=types.GoogleSearch())]),
+        config=types.GenerateContentConfig(
+            system_instruction=_language_instruction(language).strip(),
+            tools=[types.Tool(google_search=types.GoogleSearch())],
+        ),
     )
     return response.text
 
@@ -157,7 +169,7 @@ QUIZ_TOOL = types.FunctionDeclaration(
 )
 
 
-def _quiz_system_prompt(num_questions: int) -> str:
+def _quiz_system_prompt(num_questions: int, language: str = "vi") -> str:
     return (
         f"You are a quiz generator. Using ONLY the document passages provided, "
         f"generate up to {num_questions} multiple-choice questions that test "
@@ -168,10 +180,10 @@ def _quiz_system_prompt(num_questions: int) -> str:
         f"questions, generate fewer rather than inventing questions not "
         f"supported by the passages. Do not ask about anything not present "
         f"in the passages."
-    )
+    ) + _language_instruction(language)
 
 
-def generate_quiz_questions(chunks: list[dict], num_questions: int) -> list[dict]:
+def generate_quiz_questions(chunks: list[dict], num_questions: int, language: str = "vi") -> list[dict]:
     context = "\n\n".join(
         f"[Source: {c['filename']} (document_id {c['document_id']}), "
         f"passage {c['chunk_index'] + 1} of {c['total_chunks']}]\n{c['content']}"
@@ -181,7 +193,7 @@ def generate_quiz_questions(chunks: list[dict], num_questions: int) -> list[dict
         model=MODEL,
         contents=f"Document passages:\n\n{context}",
         config=types.GenerateContentConfig(
-            system_instruction=_quiz_system_prompt(num_questions),
+            system_instruction=_quiz_system_prompt(num_questions, language),
             thinking_config=types.ThinkingConfig(thinking_budget=0),
             tools=[types.Tool(function_declarations=[QUIZ_TOOL])],
             tool_config=types.ToolConfig(
